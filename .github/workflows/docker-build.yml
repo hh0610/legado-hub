@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - dev
     tags:
       - "v*"
   pull_request:
@@ -13,13 +14,16 @@ on:
 
 permissions:
   contents: read
+  packages: write
 
 concurrency:
   group: docker-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# 镜像推送到 GitHub Container Registry，自动适配当前仓库（fork 后无需改账号名）。
 env:
-  DOCKER_IMAGE: xzixmn/legado-hub
+  REGISTRY: ghcr.io
+  DOCKER_IMAGE: ${{ github.repository }}
 
 jobs:
   build:
@@ -36,32 +40,35 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Tag policy (two channels):
-      #   main  / workflow_dispatch on branch → beta + sha-*   (dev/test only)
-      #   tag v*                             → vX.Y.Z + latest + sha-*  (formal)
-      #   pull_request                       → build only, no push
+      # Tag policy:
+      #   main  → beta + sha-*        (跟踪上游)
+      #   dev   → dev + sha-*         (自定义改动)
+      #   tag v* → vX.Y.Z + latest + sha-*  (formal)
+      #   pull_request → build only, no push
       - name: Generate image metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_IMAGE }}
+          images: ${{ env.REGISTRY }}/${{ env.DOCKER_IMAGE }}
           flavor: latest=false
           tags: |
             type=raw,value=beta,enable=${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
             type=ref,event=tag
             type=sha,prefix=sha-,format=short
           labels: |
             org.opencontainers.image.title=Legado Hub
             org.opencontainers.image.description=Local-first Legado reading and source management service
-            org.opencontainers.image.source=https://github.com/XziXmn/legado-hub
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
-          username: xzixmn
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build pull request image
         if: github.event_name == 'pull_request'
