@@ -1,0 +1,47 @@
+contractVersion: "1.0"
+id: lfdapengu_com
+name: 猫眼看书
+author: Yunwei
+version: 0.1.0
+priority: 20
+type: source
+domains:
+  - lfdapengu.com
+  - jxgtzxc.com
+  - myweipin.com
+  - jmlldsc.com
+  - lemiyigou.com
+baseUrls:
+  - http://api.lfdapengu.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+enabled: true
+rateLimit:
+  perHostConcurrency: 3
+  minIntervalMs: 1200
+auth:
+  mode: none
+  cookieDomains: []
+content:
+  access: free
+proxy:
+  mode: auto
+  required: false
+accessStrategy:
+  search: api
+  detail: api
+  toc: api
+  chapter: api
+tags:
+  - json-api
+  - mobile-app-api
+  - no-login
+  - encrypted-path
+sourceSeed:
+  type: manual
+  upstreamId: ""
+  upstreamFile: ""
+  upstreamCommit: ""

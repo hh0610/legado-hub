@@ -659,7 +659,7 @@ def _load_library_book_chapter_progress(book_id: str, chapter_id: str) -> dict:
     return _sanitize_chapter_progress_payload(payload)
 
 
-def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
+async def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
     import sqlite3
 
     from app.services.aggregate_processor import AggregateProcessor
@@ -701,8 +701,18 @@ def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
 
     from app.services.book_catalog import BookCatalog
 
+    # _process_chapter 期望 camelCase 键；sqlite3.Row 直传会触发 KeyError。
+    # 同时必须在主事件循环 await：asyncio.run 会新建循环，导致绑定在主循环上的
+    # PluginScheduler 信号量/浏览器桥接报 "bound to a different event loop"。
+    chapter_payload = {
+        "chapterId": chapter_row["chapter_id"],
+        "sourceChapterId": chapter_row["source_chapter_id"],
+        "aggregateBookId": chapter_row["aggregate_book_id"],
+        "title": chapter_row["title"],
+        "chapterIndex": chapter_row["chapter_index"],
+    }
     catalog = BookCatalog()
-    result = asyncio.run(processor._process_chapter(catalog, dict(chapter_row)))
+    result = await processor._process_chapter(catalog, chapter_payload)
     return {"ok": True, "bookId": book_id, "chapterId": chapter_id, "result": result}
 
 
@@ -2895,9 +2905,9 @@ def get_library_book_chapter_progress(request: Request, book_id: str, chapter_id
 
 
 @console_route("post", "/library-books/{book_id}/chapters/{chapter_id}/process")
-def process_library_book_chapter(request: Request, book_id: str, chapter_id: str):
+async def process_library_book_chapter(request: Request, book_id: str, chapter_id: str):
     auth_service.require_admin(request)
-    return _reprocess_library_book_chapter(book_id, chapter_id)
+    return await _reprocess_library_book_chapter(book_id, chapter_id)
 
 
 @console_route("post", "/library-books/{book_id}/pause")

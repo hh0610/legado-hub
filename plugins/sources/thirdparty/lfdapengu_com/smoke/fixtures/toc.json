@@ -1,0 +1,54 @@
+{
+  "request_id": "0c730f29-54bb-499e-ab51-6112be93cb89",
+  "msg": "success",
+  "code": 200,
+  "data": {
+    "list": [
+      {
+        "path": "f4G1Fdkm2ZktEnBKlEEcmAY5UWbhPXbTorSWt+eixPuxHNQ8GKJ7v5RiZ0EacaxL",
+        "novelId": "zbqYrb",
+        "chapterName": "第一章 陨落的天才",
+        "chapterNumber": 2,
+        "bookCoin": 0,
+        "wordNum": 3121,
+        "updatedAt": "2019-04-09 18:13",
+        "chapterId": "aKOoYR",
+        "needLogin": 0,
+        "isFree": 1,
+        "isChapterBuy": 0,
+        "canDownload": 1,
+        "canRead": 1
+      },
+      {
+        "path": "f4G1Fdkm2ZktEnBKlEEcmAY5UWbhPXbTorSWt+eixPt2ySadxyxxWPqoq5noSKOm",
+        "novelId": "zbqYrb",
+        "chapterName": "第二章 斗气大陆",
+        "chapterNumber": 3,
+        "bookCoin": 0,
+        "wordNum": 4070,
+        "updatedAt": "2016-12-28 09:40",
+        "chapterId": "dLgpYw",
+        "needLogin": 0,
+        "isFree": 1,
+        "isChapterBuy": 0,
+        "canDownload": 1,
+        "canRead": 1
+      },
+      {
+        "path": "f4G1Fdkm2ZktEnBKlEEcmAY5UWbhPXbTorSWt+eixPsLTvJglKBt+dlrOn+EG5II",
+        "novelId": "zbqYrb",
+        "chapterName": "第三章 客人",
+        "chapterNumber": 4,
+        "bookCoin": 0,
+        "wordNum": 3110,
+        "updatedAt": "2019-04-08 00:16",
+        "chapterId": "aMjqEA",
+        "needLogin": 0,
+        "isFree": 1,
+        "isChapterBuy": 0,
+        "canDownload": 1,
+        "canRead": 1
+      }
+    ]
+  }
+}

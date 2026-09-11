@@ -1,0 +1,27 @@
+keyword: 斗破苍穹
+fixtures:
+  search:
+    url: http://api.lfdapengu.com/search
+    file: search.json
+  detail:
+    url: http://api.lfdapengu.com/novel/zbqYrb?isSearch=1
+    file: detail.json
+  toc:
+    url: http://api.lfdapengu.com/novel/zbqYrb/chapters
+    file: toc.json
+  chapter:
+    url: http://api.jxgtzxc.com/0/152/221121.json
+    file: chapter.json
+expect:
+  search:
+    minResults: 1
+    firstName: 斗破苍穹
+  detail:
+    name: 斗破苍穹
+    author: 天蚕土豆
+    hasTocUrl: true
+  toc:
+    minChapters: 3
+    firstTitleContains: 第一章
+  chapter:
+    minContentLength: 200
