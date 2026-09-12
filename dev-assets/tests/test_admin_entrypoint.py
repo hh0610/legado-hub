@@ -22,6 +22,30 @@ from app.server import PortDispatchApp
 from app.services.user_auth import auth_service
 
 
+def _collect_route_paths(app) -> set[str]:
+    """递归收集 app.routes 里所有路由路径，兼容新旧版 FastAPI/Starlette。
+
+    新版 FastAPI（0.115+）的 include_router 用 _IncludedRouter 懒加载，
+    路由不直接出现在 app.routes 顶层，需通过 original_router 取子路由。
+    """
+    paths: set[str] = set()
+
+    def walk(routes) -> None:
+        for route in routes:
+            path = getattr(route, "path", None)
+            if path:
+                paths.add(str(path))
+            inner = getattr(route, "original_router", None)
+            if inner is not None:
+                walk(getattr(inner, "routes", []))
+            sub = getattr(route, "routes", None)
+            if sub and route is not inner:
+                walk(sub)
+
+    walk(app.routes)
+    return paths
+
+
 PUBLIC_ORIGIN = "http://public.test:8765"
 ADMIN_ORIGIN = "http://admin.test:8766"
 
@@ -162,7 +186,7 @@ def test_admin_listener_exposes_management_but_not_access_code_redemption(isolat
     assert client.get("/console/plugins").status_code == 200
     assert client.get("/assets/app.js").status_code == 200
 
-    route_paths = {getattr(route, "path", "") for route in admin_app.routes}
+    route_paths = _collect_route_paths(admin_app)
     assert "/api/console/library-books/{book_id}/logs/stream" in route_paths
 
 

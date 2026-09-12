@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { alignmentReasonLabel } from "@/lib/utils"
 
 interface TraceSummary {
   stage?: string
@@ -110,7 +111,7 @@ function deriveStageState(progress?: ChapterProgressDetail) {
     processingVerdictText(trace.stage3Verdict, trace.stage3Reason) !== "-"
       ? processingVerdictText(trace.stage3Verdict, trace.stage3Reason)
       : (
-    trace.alignmentReason ||
+    trace.alignmentReason ? alignmentReasonLabel(trace.alignmentReason) :
     (isError ? "处理失败" : status === "fallback" ? "已回退到备用结果" : "")
         )
 
@@ -320,7 +321,7 @@ export function LibraryChapterDetailPage() {
               label="对齐结果"
               value={trace.alignmentPassed == null ? "-" : trace.alignmentPassed ? "通过" : "未通过"}
             />
-            <MetaItem label="对齐原因" value={trace.alignmentReason || "-"} />
+            <MetaItem label="对齐原因" value={trace.alignmentReason ? alignmentReasonLabel(trace.alignmentReason) : "-"} />
             <MetaItem label="标题相似度" value={formatDecimal(trace.titleSimilarity)} />
             <MetaItem label="预览相似度" value={formatDecimal(trace.previewSimilarity)} />
           </div>
