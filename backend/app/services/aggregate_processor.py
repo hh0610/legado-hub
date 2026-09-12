@@ -3504,28 +3504,63 @@ class AggregateProcessor:
                                 cand_content = cand_result.get("content", "")
                                 fetched_from_network = True
                     is_official = self._is_official_source(cand_source_id)
-                    candidate_word_count = self._extract_source_word_count(cand_result)
-                    candidate_preview_only = self._extract_preview_only(cand_result)
-                    candidate_is_paid = self._extract_is_paid(cand_result)
-                    # Snapshot persistence happens only after the candidate
-                    # passes validation below: caching a rejected chapter at
-                    # this position would poison every later candidate match.
-                    # Prefer official baseline so short third-party bodies cannot
-                    # pass as "full" merely because the mirror omits wordCount.
-                    gate_word_count = (
-                        official_word_count
-                        if official_word_count > 0
-                        else candidate_word_count
-                    )
-                    cls = classify_source_content(
-                        cand_content,
-                        source_id=cand_source_id,
-                        is_official=is_official,
-                        source_word_count=gate_word_count,
-                        preview_only_hint=candidate_preview_only,
-                        extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
-                        is_paid=candidate_is_paid,
-                    )
+                    cls: dict[str, Any] = {}
+                    for _attempt in range(2):
+                        candidate_word_count = self._extract_source_word_count(cand_result)
+                        candidate_preview_only = self._extract_preview_only(cand_result)
+                        candidate_is_paid = self._extract_is_paid(cand_result)
+                        # Snapshot persistence happens only after the candidate
+                        # passes validation below: caching a rejected chapter at
+                        # this position would poison every later candidate match.
+                        # Prefer official baseline so short third-party bodies cannot
+                        # pass as "full" merely because the mirror omits wordCount.
+                        gate_word_count = (
+                            official_word_count
+                            if official_word_count > 0
+                            else candidate_word_count
+                        )
+                        cls = classify_source_content(
+                            cand_content,
+                            source_id=cand_source_id,
+                            is_official=is_official,
+                            source_word_count=gate_word_count,
+                            preview_only_hint=candidate_preview_only,
+                            extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
+                            is_paid=candidate_is_paid,
+                        )
+                        if cls["classification"] == "full":
+                            break
+                        if (
+                            _attempt == 0
+                            and not fetched_from_network
+                            and not is_official
+                            and cand_content
+                        ):
+                            # Snapshot hit but its content failed classification:
+                            # the cached row is likely a truncated legacy entry.
+                            # Treat the snapshot as stale and refetch once.
+                            self._log_chapter_step(
+                                aggregate_book_id=aggregate_book_id,
+                                chapter_index=target_index,
+                                title=target_title,
+                                event="candidate_snapshot_stale",
+                                stage="stage2",
+                                payload={
+                                    "step": "快照内容不完整，回源重新拉取",
+                                    "sourceId": cand_source_id,
+                                    "contentLength": len(cand_content),
+                                    "classification": cls.get("classification", ""),
+                                },
+                            )
+                            async with self._source_slot(
+                                aggregate_book_id=aggregate_book_id,
+                                source_id=cand_source_id,
+                            ):
+                                cand_result = await catalog.chapter(cand_chapter_id)
+                                cand_content = cand_result.get("content", "")
+                            fetched_from_network = True
+                            continue
+                        break
                     if cls["classification"] != "full":
                         self._log_chapter_step(
                             aggregate_book_id=aggregate_book_id,
