@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth"
 import { executeLibraryBookMaintenanceAction } from "@/lib/library-actions"
 import { LogStream, type LogRecord } from "@/components/shared/LogStream"
 import { PagedChapterReader } from "@/components/reading/PagedChapterReader"
+import { ManualCandidateDialog } from "@/components/ManualCandidateDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,7 +54,7 @@ interface LibraryBookDetail {
   sourceSnapshotProgress?: SourceSnapshotProgress | null
 }
 interface LibraryChapterListItem {
-  chapterId: string; chapterIndex: number; title: string; status: string; sourceId?: string; error?: string; isVip?: boolean; previewOnly?: boolean; sourceWordCount?: number; contentLength?: number; hasContent?: boolean; readChapterId?: string
+  chapterId: string; chapterIndex: number; title: string; status: string; sourceId?: string; error?: string; isVip?: boolean; previewOnly?: boolean; sourceWordCount?: number; contentLength?: number; hasContent?: boolean; readChapterId?: string; manualSupplement?: boolean; manualSourceName?: string
 }
 
 function processStatusMap(status: string) {
@@ -135,6 +136,7 @@ export function LibraryBookDetailPage() {
   const [backlogChapterLimit, setBacklogChapterLimit] = useState("25")
   const [actionNotice, setActionNotice] = useState<{ pending: boolean; text: string } | null>(null)
   const [liveProgress, setLiveProgress] = useState<{ bookId: string; step: string } | null>(null)
+  const [manualTarget, setManualTarget] = useState<LibraryChapterListItem | null>(null)
 
   const { data: book, isLoading, error: bookError, refetch: refetchBook } = useQuery<LibraryBookDetail | null>({
     queryKey: ["library", "book", bookId, "summary"],
@@ -655,7 +657,16 @@ export function LibraryBookDetailPage() {
                       >
                         <TableCell className="font-medium text-slate-500">{c.chapterIndex}</TableCell>
                         <TableCell>{c.title}</TableCell>
-                        <TableCell><span className={`text-xs font-medium ${chapterStatusColor(c.status)}`}>{chapterStatusLabel(c.status)}</span></TableCell>
+                        <TableCell>
+                          <span className={`text-xs font-medium ${chapterStatusColor(c.status)}`}>{chapterStatusLabel(c.status)}</span>
+                          {c.manualSupplement && (
+                            <span
+                              className="ml-1.5 text-xs px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 align-middle"
+                              title={c.manualSourceName ? `人工采纳自：${c.manualSourceName}，自动更新不会覆盖` : "人工采纳，自动更新不会覆盖"}
+                              data-testid="manual-supplement-badge"
+                            >人工</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {c.isVip ? <span className="flex items-center text-amber-500 text-xs font-medium"><Crown className="h-3 w-3 mr-1" /> VIP</span>
                            : c.previewOnly ? <span className="text-orange-500 text-xs">预览</span>
@@ -666,8 +677,9 @@ export function LibraryBookDetailPage() {
                             <TableCell className="text-slate-500 text-xs">{c.sourceId || "-"}</TableCell>
                             <TableCell className="text-slate-500 text-xs">{c.sourceWordCount || c.contentLength || "-"}</TableCell>
                             <TableCell className="text-rose-500 text-xs">{c.error || "-"}</TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                            <TableCell className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="sm" className="h-8" onClick={() => chapterProcessMutation.mutate(c.chapterId)} disabled={maintenanceBusy}>处理本章</Button>
+                              <Button variant="ghost" size="sm" className="h-8" onClick={() => setManualTarget(c)} disabled={maintenanceBusy} data-testid="manual-candidate-open">手动选源</Button>
                             </TableCell>
                           </>
                         )}
@@ -790,6 +802,13 @@ export function LibraryBookDetailPage() {
         contentLoading={chapterBodyQuery.isLoading}
         contentError={chapterBodyQuery.error}
         onRetryContent={() => { void chapterBodyQuery.refetch() }}
+      />
+      <ManualCandidateDialog
+        bookId={bookId!}
+        chapter={manualTarget}
+        open={Boolean(manualTarget)}
+        onOpenChange={(open) => { if (!open) setManualTarget(null) }}
+        onApplied={() => { void refreshQueries() }}
       />
     </div>
   )
