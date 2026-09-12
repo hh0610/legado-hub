@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Loader2, AlertTriangle, CheckCircle2, FileText } from "lucide-react"
 import { api, apiErrorMessage } from "@/lib/api"
+import { alignmentReasonLabel } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
@@ -66,23 +67,6 @@ function classificationLabel(cls: string) {
     full: "完整正文", preview: "预览内容", empty: "空内容", unknown: "判定未知",
   }
   return m[cls] || cls || "判定未知"
-}
-
-const ALIGNMENT_REASON_LABELS: Record<string, string> = {
-  title_low: "标题相似度不足",
-  preview_low: "正文预览相似度不足",
-  head_low: "开头预览相似度不足",
-  no_preview_available: "无官方预览可对齐",
-  no_official_preview: "无官方预览",
-  alignment_failed: "对齐未通过",
-  not_available: "对齐不可用",
-}
-
-function alignmentReasonLabel(reason: string) {
-  if (!reason) return "相似度不足"
-  const parts = reason.split("+").map((p) => p.trim()).filter(Boolean)
-  const mapped = parts.map((p) => ALIGNMENT_REASON_LABELS[p] || p)
-  return mapped.join("、") || "相似度不足"
 }
 
 function classificationClass(cls: string) {
