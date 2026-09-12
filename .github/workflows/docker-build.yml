@@ -11,6 +11,12 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "附加镜像标签（版本号），留空则只打 dev/sha-*；仅允许字母数字及 _ . -，示例：test-v0.00"
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
@@ -20,7 +26,10 @@ concurrency:
   group: docker-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# 镜像推送到 GitHub Container Registry，自动适配当前仓库（fork 后无需改账号名）。
+# 镜像推送到 GitHub Container Registry（ghcr.io），自动适配当前仓库（fork 后无需改账号名）。
+# 认证使用 Actions 内置 GITHUB_TOKEN，无需配置任何 secret。
+# 包默认随仓库可见性：公开仓库推上去即为 Public 包，任何人可匿名 docker pull，
+# 且镜像只含程序代码，DB/cookies/配置均在部署侧挂载卷，不会进镜像。
 env:
   REGISTRY: ghcr.io
   DOCKER_IMAGE: ${{ github.repository }}
@@ -32,6 +41,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Docker/OCI 标签只允许 [A-Za-z0-9_][A-Za-z0-9._-]{0,127}，不能含中文或空格，
+      # 因此"测试版LegadoHub v0.00"这类写法无法作为镜像标签，请改用如 test-v0.00。
+      - name: Validate custom image tag
+        if: github.event_name == 'workflow_dispatch' && inputs.image_tag != ''
+        env:
+          CUSTOM_TAG: ${{ inputs.image_tag }}
+        run: |
+          if ! printf '%s' "$CUSTOM_TAG" | grep -Eq '^[A-Za-z0-9_][A-Za-z0-9._-]{0,127}$'; then
+            echo "::error::镜像标签不合法：[$CUSTOM_TAG]。仅允许字母、数字、下划线、点、短横（首字符不能是 . 或 -），最长 128 个字符，不能含中文或空格。示例：test-v0.00、v0.00-test"
+            exit 1
+          fi
+          echo "将附加镜像标签：$CUSTOM_TAG"
 
       - name: Set up QEMU
         if: github.event_name != 'pull_request'
@@ -55,6 +77,7 @@ jobs:
             type=raw,value=beta,enable=${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
             type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev' }}
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+            type=raw,value=${{ inputs.image_tag }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.image_tag != '' }}
             type=ref,event=tag
             type=sha,prefix=sha-,format=short
           labels: |
