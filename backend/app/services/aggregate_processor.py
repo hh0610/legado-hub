@@ -2015,21 +2015,15 @@ class AggregateProcessor:
         chapter_index: int,
         title: str,
     ) -> dict[str, Any] | None:
-        from app.services.aggregate_alignment import chapter_title_similarity
-
-        nearby = [
-            item for item in source_chapters
-            if abs(int(item.get("index", 0) or 0) - chapter_index) <= 2
-        ]
-        scored = [
-            (chapter_title_similarity(title, str(item.get("title", "") or "")), item)
-            for item in nearby
-        ]
-        scored = [item for item in scored if item[0] >= 0.75]
-        if not scored:
-            return None
-        scored.sort(key=lambda item: (-item[0], abs(int(item[1].get("index", 0) or 0) - chapter_index)))
-        return scored[0][1]
+        # 批量采集与实时补全必须共用同一套匹配语义：候选源目录可能插入公告章、
+        # 缺章/重编号，纯位置窗口（±2）会系统性漏掉大量章节。统一交由
+        # _match_candidate_toc_entries 处理同名微错位优先、序号门限与位置兜底。
+        matches = self._match_candidate_toc_entries(
+            cand_chapters=source_chapters,
+            target_index=chapter_index,
+            target_title=title,
+        )
+        return matches[0] if matches else None
 
     def _source_snapshot_exists(self, aggregate_book_id: str, chapter_index: int, source_id: str) -> bool:
         with self._conn() as conn:
@@ -3461,6 +3455,7 @@ class AggregateProcessor:
                         chapter_index=target_index or 0,
                         source_id=cand_source_id,
                         expected_title=target_title,
+                        source_chapter_id=cand_chapter_id,
                     )
                     cand_result: dict[str, Any] = {}
                     fetched_from_network = False
@@ -3499,6 +3494,7 @@ class AggregateProcessor:
                                 chapter_index=target_index or 0,
                                 source_id=cand_source_id,
                                 expected_title=target_title,
+                                source_chapter_id=cand_chapter_id,
                             )
                             if cand_content:
                                 if not (official_preview or official_word_count > 0):
@@ -3511,28 +3507,9 @@ class AggregateProcessor:
                     candidate_word_count = self._extract_source_word_count(cand_result)
                     candidate_preview_only = self._extract_preview_only(cand_result)
                     candidate_is_paid = self._extract_is_paid(cand_result)
-                    if cand_content and fetched_from_network:
-                        self._save_source_snapshot(
-                            aggregate_book_id=aggregate_book_id,
-                            chapter_index=target_index or 0,
-                            source_id=cand_source_id,
-                            source_book_id=cand.get("bookId", ""),
-                            source_chapter_id=cand_chapter_id,
-                            title=matched_ch.get("title", "") or target_title,
-                            raw_content=cand_content,
-                            source_chapter_url=self._extract_source_chapter_url(cand_result, cand_chapter_id),
-                            classification="unknown",
-                        )
-                        self._upsert_snapshot_run(
-                            aggregate_book_id=aggregate_book_id,
-                            source_id=cand_source_id,
-                            source_book_id=str(cand.get("bookId", "") or ""),
-                            status="partial",
-                            total_chapters=len(cand_chapters),
-                            fetched_chapters=self._source_snapshot_count(aggregate_book_id, cand_source_id),
-                            failed_chapters=0,
-                            last_error="",
-                        )
+                    # Snapshot persistence happens only after the candidate
+                    # passes validation below: caching a rejected chapter at
+                    # this position would poison every later candidate match.
                     # Prefer official baseline so short third-party bodies cannot
                     # pass as "full" merely because the mirror omits wordCount.
                     gate_word_count = (
@@ -3659,6 +3636,28 @@ class AggregateProcessor:
                         "source_id": cand_source_id,
                         "alignment_json": alignment_json,
                     })
+                    if fetched_from_network:
+                        self._save_source_snapshot(
+                            aggregate_book_id=aggregate_book_id,
+                            chapter_index=target_index or 0,
+                            source_id=cand_source_id,
+                            source_book_id=cand.get("bookId", ""),
+                            source_chapter_id=cand_chapter_id,
+                            title=matched_ch.get("title", "") or target_title,
+                            raw_content=cand_content,
+                            source_chapter_url=self._extract_source_chapter_url(cand_result, cand_chapter_id),
+                            classification=str(cls.get("classification", "") or "unknown"),
+                        )
+                        self._upsert_snapshot_run(
+                            aggregate_book_id=aggregate_book_id,
+                            source_id=cand_source_id,
+                            source_book_id=str(cand.get("bookId", "") or ""),
+                            status="partial",
+                            total_chapters=len(cand_chapters),
+                            fetched_chapters=self._source_snapshot_count(aggregate_book_id, cand_source_id),
+                            failed_chapters=0,
+                            last_error="",
+                        )
                     self._log_chapter_step(
                         aggregate_book_id=aggregate_book_id,
                         chapter_index=target_index,
@@ -4096,6 +4095,14 @@ class AggregateProcessor:
         index_fallbacks.sort(key=lambda item: item[0])
         return [item[1] for item in index_fallbacks[:3]]
 
+    @staticmethod
+    def _strip_chapter_ordinal_prefix(title: str) -> str:
+        return re.sub(
+            r"^\s*第[零〇一二两三四五六七八九十百千万\d]+[章节回卷篇部集]\s*[:：、.．\-_·]*",
+            "",
+            str(title or ""),
+        ).strip()
+
     def _candidate_title_match_rank(
         self,
         target_title: str,
@@ -4110,6 +4117,16 @@ class AggregateProcessor:
         candidate_ordinal = self._chapter_ordinal_from_title(candidate_title)
         if target_ordinal is not None and candidate_ordinal is not None:
             ordinal_gap = abs(target_ordinal - candidate_ordinal)
+            # Mirrors sometimes renumber chapters (inserted extras / merged
+            # splits). When the chapter name matches but the ordinal is a few
+            # off, that is the same chapter under a different numbering scheme;
+            # rank it above an ordinal-near entry whose name differs.
+            target_name = self._strip_chapter_ordinal_prefix(target_title)
+            candidate_name = self._strip_chapter_ordinal_prefix(candidate_title)
+            if target_name and candidate_name:
+                name_similarity = chapter_title_similarity(target_name, candidate_name)
+                if name_similarity >= 0.8 and ordinal_gap <= 5:
+                    return (0, name_similarity, ordinal_gap)
             if similarity >= 0.75 and ordinal_gap <= 5:
                 return (0, similarity, ordinal_gap)
             if ordinal_gap <= 2:
@@ -5306,19 +5323,36 @@ class AggregateProcessor:
         chapter_index: int,
         source_id: str,
         expected_title: str = "",
+        source_chapter_id: str = "",
     ) -> str:
         if not aggregate_book_id or not chapter_index or not source_id:
             return ""
         with self._conn() as conn:
-            row = conn.execute(
-                """
-                SELECT title, clean_content
-                FROM aggregate_source_snapshots
-                WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
-                LIMIT 1
-                """,
-                (aggregate_book_id, chapter_index, source_id),
-            ).fetchone()
+            if source_chapter_id:
+                # When a specific TOC match is requested the position row may
+                # hold a different chapter (mirrors renumber chapters); never
+                # serve a snapshot captured for another chapter of the same
+                # source at the same aggregate position.
+                row = conn.execute(
+                    """
+                    SELECT title, clean_content
+                    FROM aggregate_source_snapshots
+                    WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
+                      AND source_chapter_id = ?
+                    LIMIT 1
+                    """,
+                    (aggregate_book_id, chapter_index, source_id, source_chapter_id),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT title, clean_content
+                    FROM aggregate_source_snapshots
+                    WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
+                    LIMIT 1
+                    """,
+                    (aggregate_book_id, chapter_index, source_id),
+                ).fetchone()
         if not row:
             return ""
         snapshot_title = str(row[0] or "")
