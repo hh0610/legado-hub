@@ -2015,21 +2015,15 @@ class AggregateProcessor:
         chapter_index: int,
         title: str,
     ) -> dict[str, Any] | None:
-        from app.services.aggregate_alignment import chapter_title_similarity
-
-        nearby = [
-            item for item in source_chapters
-            if abs(int(item.get("index", 0) or 0) - chapter_index) <= 2
-        ]
-        scored = [
-            (chapter_title_similarity(title, str(item.get("title", "") or "")), item)
-            for item in nearby
-        ]
-        scored = [item for item in scored if item[0] >= 0.75]
-        if not scored:
-            return None
-        scored.sort(key=lambda item: (-item[0], abs(int(item[1].get("index", 0) or 0) - chapter_index)))
-        return scored[0][1]
+        # 批量采集与实时补全必须共用同一套匹配语义：候选源目录可能插入公告章、
+        # 缺章/重编号，纯位置窗口（±2）会系统性漏掉大量章节。统一交由
+        # _match_candidate_toc_entries 处理同名微错位优先、序号门限与位置兜底。
+        matches = self._match_candidate_toc_entries(
+            cand_chapters=source_chapters,
+            target_index=chapter_index,
+            target_title=title,
+        )
+        return matches[0] if matches else None
 
     def _source_snapshot_exists(self, aggregate_book_id: str, chapter_index: int, source_id: str) -> bool:
         with self._conn() as conn:
@@ -2191,6 +2185,7 @@ class AggregateProcessor:
                         FROM aggregate_chapter_tasks
                         WHERE aggregate_book_id = ?
                           AND placeholder = 0
+                          AND COALESCE(manual_supplement, 0) = 0
                           AND (
                             status = 'pending'
                             OR (
@@ -2226,6 +2221,7 @@ class AggregateProcessor:
                         FROM aggregate_chapter_tasks
                         WHERE aggregate_book_id = ?
                           AND placeholder = 1
+                          AND COALESCE(manual_supplement, 0) = 0
                           AND (
                             status = 'pending'
                             OR (
@@ -2266,6 +2262,7 @@ class AggregateProcessor:
                             FROM aggregate_chapter_tasks
                             WHERE aggregate_book_id = ?
                               AND chapter_id IN ({placeholders})
+                              AND COALESCE(manual_supplement, 0) = 0
                               AND status = 'fallback'
                               AND content_file_path IS NOT NULL
                               AND content_file_path != ''
@@ -2287,6 +2284,7 @@ class AggregateProcessor:
                         WHERE aggregate_book_id = ?
                           AND status = 'fallback'
                           AND preview_only = 1
+                          AND COALESCE(manual_supplement, 0) = 0
                           AND (next_retry_time IS NULL OR next_retry_time <= ?)
                           AND (preview_retry_count IS NULL OR preview_retry_count <= ?)
                           AND chapter_id NOT IN ({placeholders})
@@ -2998,6 +2996,7 @@ class AggregateProcessor:
         source_word_count: int = 0,
         primary_source_chapter_url: str = "",
         cross_source_selected: bool = False,
+        manual_meta: dict[str, Any] | None = None,
     ) -> dict:
         """Path 1: Content is full. Normalize → write result. (AI 已抽离)"""
         from app.services.aggregate_alignment import build_source_alignment_json
@@ -3047,7 +3046,12 @@ class AggregateProcessor:
             }
 
         # 官方直出：仅记录偏差。第三方补全：按官方字数硬门禁，不达标拒绝写入。
-        enforce_word_count = bool(fallback_source_id) and int(source_word_count or 0) > 0
+        # 人工手动采纳时用户已自行确认内容，跳过硬门禁但仍记录偏差供审计。
+        enforce_word_count = (
+            bool(fallback_source_id)
+            and int(source_word_count or 0) > 0
+            and not manual_meta
+        )
         word_count_result = self._validate_word_count(
             selected_content, source_word_count,
             enforce=enforce_word_count,
@@ -3106,6 +3110,7 @@ class AggregateProcessor:
             primary_source_chapter_url=primary_source_chapter_url,
             word_count_validation=word_count_result,
             lexicon_result=lexicon_result,
+            manual_meta=manual_meta,
         )
         return {"chapterId": chapter_id, "success": True,
                 "contentLength": len(selected_content),
@@ -3461,6 +3466,7 @@ class AggregateProcessor:
                         chapter_index=target_index or 0,
                         source_id=cand_source_id,
                         expected_title=target_title,
+                        source_chapter_id=cand_chapter_id,
                     )
                     cand_result: dict[str, Any] = {}
                     fetched_from_network = False
@@ -3499,6 +3505,7 @@ class AggregateProcessor:
                                 chapter_index=target_index or 0,
                                 source_id=cand_source_id,
                                 expected_title=target_title,
+                                source_chapter_id=cand_chapter_id,
                             )
                             if cand_content:
                                 if not (official_preview or official_word_count > 0):
@@ -3508,47 +3515,63 @@ class AggregateProcessor:
                                 cand_content = cand_result.get("content", "")
                                 fetched_from_network = True
                     is_official = self._is_official_source(cand_source_id)
-                    candidate_word_count = self._extract_source_word_count(cand_result)
-                    candidate_preview_only = self._extract_preview_only(cand_result)
-                    candidate_is_paid = self._extract_is_paid(cand_result)
-                    if cand_content and fetched_from_network:
-                        self._save_source_snapshot(
-                            aggregate_book_id=aggregate_book_id,
-                            chapter_index=target_index or 0,
-                            source_id=cand_source_id,
-                            source_book_id=cand.get("bookId", ""),
-                            source_chapter_id=cand_chapter_id,
-                            title=matched_ch.get("title", "") or target_title,
-                            raw_content=cand_content,
-                            source_chapter_url=self._extract_source_chapter_url(cand_result, cand_chapter_id),
-                            classification="unknown",
+                    cls: dict[str, Any] = {}
+                    for _attempt in range(2):
+                        candidate_word_count = self._extract_source_word_count(cand_result)
+                        candidate_preview_only = self._extract_preview_only(cand_result)
+                        candidate_is_paid = self._extract_is_paid(cand_result)
+                        # Snapshot persistence happens only after the candidate
+                        # passes validation below: caching a rejected chapter at
+                        # this position would poison every later candidate match.
+                        # Prefer official baseline so short third-party bodies cannot
+                        # pass as "full" merely because the mirror omits wordCount.
+                        gate_word_count = (
+                            official_word_count
+                            if official_word_count > 0
+                            else candidate_word_count
                         )
-                        self._upsert_snapshot_run(
-                            aggregate_book_id=aggregate_book_id,
+                        cls = classify_source_content(
+                            cand_content,
                             source_id=cand_source_id,
-                            source_book_id=str(cand.get("bookId", "") or ""),
-                            status="partial",
-                            total_chapters=len(cand_chapters),
-                            fetched_chapters=self._source_snapshot_count(aggregate_book_id, cand_source_id),
-                            failed_chapters=0,
-                            last_error="",
+                            is_official=is_official,
+                            source_word_count=gate_word_count,
+                            preview_only_hint=candidate_preview_only,
+                            extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
+                            is_paid=candidate_is_paid,
                         )
-                    # Prefer official baseline so short third-party bodies cannot
-                    # pass as "full" merely because the mirror omits wordCount.
-                    gate_word_count = (
-                        official_word_count
-                        if official_word_count > 0
-                        else candidate_word_count
-                    )
-                    cls = classify_source_content(
-                        cand_content,
-                        source_id=cand_source_id,
-                        is_official=is_official,
-                        source_word_count=gate_word_count,
-                        preview_only_hint=candidate_preview_only,
-                        extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
-                        is_paid=candidate_is_paid,
-                    )
+                        if cls["classification"] == "full":
+                            break
+                        if (
+                            _attempt == 0
+                            and not fetched_from_network
+                            and not is_official
+                            and cand_content
+                        ):
+                            # Snapshot hit but its content failed classification:
+                            # the cached row is likely a truncated legacy entry.
+                            # Treat the snapshot as stale and refetch once.
+                            self._log_chapter_step(
+                                aggregate_book_id=aggregate_book_id,
+                                chapter_index=target_index,
+                                title=target_title,
+                                event="candidate_snapshot_stale",
+                                stage="stage2",
+                                payload={
+                                    "step": "快照内容不完整，回源重新拉取",
+                                    "sourceId": cand_source_id,
+                                    "contentLength": len(cand_content),
+                                    "classification": cls.get("classification", ""),
+                                },
+                            )
+                            async with self._source_slot(
+                                aggregate_book_id=aggregate_book_id,
+                                source_id=cand_source_id,
+                            ):
+                                cand_result = await catalog.chapter(cand_chapter_id)
+                                cand_content = cand_result.get("content", "")
+                            fetched_from_network = True
+                            continue
+                        break
                     if cls["classification"] != "full":
                         self._log_chapter_step(
                             aggregate_book_id=aggregate_book_id,
@@ -3659,6 +3682,28 @@ class AggregateProcessor:
                         "source_id": cand_source_id,
                         "alignment_json": alignment_json,
                     })
+                    if fetched_from_network:
+                        self._save_source_snapshot(
+                            aggregate_book_id=aggregate_book_id,
+                            chapter_index=target_index or 0,
+                            source_id=cand_source_id,
+                            source_book_id=cand.get("bookId", ""),
+                            source_chapter_id=cand_chapter_id,
+                            title=matched_ch.get("title", "") or target_title,
+                            raw_content=cand_content,
+                            source_chapter_url=self._extract_source_chapter_url(cand_result, cand_chapter_id),
+                            classification=str(cls.get("classification", "") or "unknown"),
+                        )
+                        self._upsert_snapshot_run(
+                            aggregate_book_id=aggregate_book_id,
+                            source_id=cand_source_id,
+                            source_book_id=str(cand.get("bookId", "") or ""),
+                            status="partial",
+                            total_chapters=len(cand_chapters),
+                            fetched_chapters=self._source_snapshot_count(aggregate_book_id, cand_source_id),
+                            failed_chapters=0,
+                            last_error="",
+                        )
                     self._log_chapter_step(
                         aggregate_book_id=aggregate_book_id,
                         chapter_index=target_index,
@@ -3815,6 +3860,425 @@ class AggregateProcessor:
             payload={"step": "没有可用候选源"},
         )
         return None
+
+    # ── 手动选源补全（人工兜底）─────────────────────────────────────────────
+
+    MANUAL_SCAN_ENTRIES_PER_SOURCE = 2
+    MANUAL_PREVIEW_HEAD_CHARS = 120
+    MANUAL_PREVIEW_TAIL_CHARS = 120
+
+    def _source_display_name(self, source_id: str, aggregate_book_id: str = "") -> str:
+        """Resolve a candidate source id to its human-readable plugin name."""
+        if aggregate_book_id:
+            with self._conn() as conn:
+                row = conn.execute(
+                    """
+                    SELECT source_name FROM aggregate_book_sources
+                    WHERE aggregate_book_id = ? AND source_id = ?
+                      AND COALESCE(source_name, '') != ''
+                    LIMIT 1
+                    """,
+                    (aggregate_book_id, source_id),
+                ).fetchone()
+            if row and row[0]:
+                return str(row[0])
+        try:
+            from app.source_plugins.scheduler import get_plugin_scheduler
+
+            plugin = get_plugin_scheduler()._plugins.get(source_id)
+            if plugin is not None:
+                return str(getattr(plugin.metadata, "name", "") or source_id)
+        except Exception:
+            pass
+        return source_id
+
+    @staticmethod
+    def _resolve_manual_chapter_id(cand_source_id: str, matched_ch: dict[str, Any]) -> str:
+        chapter_id = str(matched_ch.get("chapterId", "") or "")
+        if not chapter_id and matched_ch.get("chapterUrl"):
+            chapter_id = encode_chapter_id(cand_source_id, str(matched_ch["chapterUrl"]))
+        return chapter_id
+
+    async def scan_manual_candidates(self, catalog, chapter: dict[str, Any]) -> dict[str, Any]:
+        """只读扫描该章在各候选源上的匹配章节，返回内容预览与自动校验数据。
+
+        与自动补全共用同一套发现/匹配/分类/对齐原语，但不应用任何拒绝门、
+        不写库——被自动流程拒绝的候选（如字数偏差 5%）同样返回，供人工判断。
+        """
+        from app.services.aggregate_alignment import (
+            align_candidate_chapter,
+            classify_source_content,
+        )
+
+        aggregate_book_id = str(chapter.get("aggregateBookId", "") or "")
+        target_index = chapter.get("chapterIndex", 0)
+        target_title = str(chapter.get("title", "") or "")
+        try:
+            official_word_count = int(chapter.get("sourceWordCount", 0) or 0)
+        except (TypeError, ValueError):
+            official_word_count = 0
+
+        payload = self._load_aggregate_payload(aggregate_book_id)
+        primary_source_id = str(payload.get("primarySourceId", "") or "")
+        payload = await self._ensure_candidate_sources_for_book(aggregate_book_id, payload)
+        candidates = self._candidate_sources_from_payload(
+            payload, primary_source_id, aggregate_book_id, include_expansion=True,
+        )
+        official_preview = str(
+            self._load_source_snapshot_content(
+                aggregate_book_id=aggregate_book_id,
+                chapter_index=target_index or 0,
+                source_id=primary_source_id,
+            ) or ""
+        ).strip()
+
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index,
+            title=target_title,
+            event="manual_scan_start",
+            stage="stage2",
+            payload={"step": "手动选源：正在扫描候选源"},
+        )
+
+        items: list[dict[str, Any]] = []
+        source_errors: list[dict[str, str]] = []
+        seen_sources: set[str] = set()
+        for cand in candidates:
+            cand_source_id = str(cand.get("sourceId", "") or "")
+            cand_book_id = str(cand.get("bookId", "") or "")
+            if not cand_source_id or not cand_book_id or cand_source_id in seen_sources:
+                continue
+            seen_sources.add(cand_source_id)
+            source_name = self._source_display_name(cand_source_id, aggregate_book_id)
+            try:
+                cand_toc = await self._cached_toc(
+                    catalog,
+                    cand_book_id,
+                    aggregate_book_id=aggregate_book_id,
+                    source_id=cand_source_id,
+                )
+                cand_chapters = [c for c in cand_toc.get("chapters", []) if isinstance(c, dict)]
+            except Exception as exc:
+                source_errors.append({"sourceId": cand_source_id, "sourceName": source_name,
+                                      "error": str(exc) or "目录加载失败"})
+                continue
+
+            matched = self._match_candidate_toc_entries(
+                cand_chapters=cand_chapters,
+                target_index=target_index,
+                target_title=target_title,
+            )[: self.MANUAL_SCAN_ENTRIES_PER_SOURCE]
+            for matched_ch in matched:
+                cand_chapter_id = self._resolve_manual_chapter_id(cand_source_id, matched_ch)
+                if not cand_chapter_id:
+                    continue
+                candidate_title = str(matched_ch.get("title", "") or target_title)
+                item: dict[str, Any] = {
+                    "sourceId": cand_source_id,
+                    "sourceName": source_name,
+                    "sourceChapterId": cand_chapter_id,
+                    "candidateTitle": candidate_title,
+                    "officialWordCount": official_word_count,
+                    "contentLength": 0,
+                    "classification": "empty",
+                    "wordCount": {"passed": False, "actual": 0, "expected": official_word_count},
+                    "alignment": {"passed": False, "titleSimilarity": 0.0,
+                                  "previewSimilarity": 0.0, "headPreviewSimilarity": 0.0,
+                                  "reason": ""},
+                    "autoAcceptable": False,
+                    "head": "",
+                    "tail": "",
+                    "error": "",
+                }
+                try:
+                    async with self._source_slot(
+                        aggregate_book_id=aggregate_book_id,
+                        source_id=cand_source_id,
+                    ):
+                        cand_result = await catalog.chapter(cand_chapter_id)
+                    cand_content = str(cand_result.get("content", "") or "")
+                except Exception as exc:
+                    item["error"] = str(exc) or "正文拉取失败"
+                    items.append(item)
+                    continue
+
+                item["contentLength"] = len(cand_content)
+                is_official = self._is_official_source(cand_source_id)
+                candidate_word_count = self._extract_source_word_count(cand_result)
+                gate_word_count = official_word_count if official_word_count > 0 else candidate_word_count
+                cls = classify_source_content(
+                    cand_content,
+                    source_id=cand_source_id,
+                    is_official=is_official,
+                    source_word_count=gate_word_count,
+                    preview_only_hint=self._extract_preview_only(cand_result),
+                    extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
+                    is_paid=self._extract_is_paid(cand_result),
+                )
+                item["classification"] = str(cls.get("classification", "") or "unknown")
+
+                word_gate = {"passed": True, "actual": len(cand_content),
+                             "expected": official_word_count, "ratio": None}
+                if official_word_count > 0:
+                    word_gate = self._validate_word_count(
+                        cand_content, official_word_count, enforce=True,
+                        aggregate_book_id=aggregate_book_id,
+                        chapter_index=target_index, source_id=cand_source_id,
+                    )
+                item["wordCount"] = {
+                    "passed": bool(word_gate.get("passed")),
+                    "actual": word_gate.get("actual", len(cand_content)),
+                    "expected": official_word_count,
+                    "ratio": word_gate.get("ratio"),
+                }
+
+                aligned = {"alignmentPassed": False, "titleSimilarity": 0.0,
+                           "previewSimilarity": 0.0, "headPreviewSimilarity": 0.0,
+                           "alignmentReason": "no_preview_available"}
+                if official_preview:
+                    aligned = align_candidate_chapter(
+                        official_preview=official_preview,
+                        candidate_title=candidate_title,
+                        candidate_content=cand_content,
+                        expected_title=target_title,
+                    )
+                item["alignment"] = {
+                    "passed": bool(aligned.get("alignmentPassed")),
+                    "titleSimilarity": aligned.get("titleSimilarity", 0.0),
+                    "previewSimilarity": aligned.get("previewSimilarity", 0.0),
+                    "headPreviewSimilarity": aligned.get("headPreviewSimilarity", 0.0),
+                    "reason": aligned.get("alignmentReason", ""),
+                }
+
+                longer_than_preview = (
+                    not official_preview or len(cand_content) > len(official_preview)
+                )
+                item["autoAcceptable"] = bool(
+                    item["classification"] == "full"
+                    and item["wordCount"]["passed"]
+                    and longer_than_preview
+                    and (not official_preview or item["alignment"]["passed"])
+                )
+                if cand_content:
+                    item["head"] = cand_content[: self.MANUAL_PREVIEW_HEAD_CHARS]
+                    tail_keep = self.MANUAL_PREVIEW_TAIL_CHARS
+                    item["tail"] = (
+                        cand_content[-tail_keep:] if len(cand_content) > tail_keep * 2 else ""
+                    )
+                items.append(item)
+
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index,
+            title=target_title,
+            event="manual_scan_complete",
+            stage="stage2",
+            payload={"step": "手动选源扫描完成",
+                     "candidateCount": len(items), "sourceErrorCount": len(source_errors)},
+        )
+        return {
+            "targetTitle": target_title,
+            "chapterIndex": target_index,
+            "officialPreviewLength": len(official_preview),
+            "officialWordCount": official_word_count,
+            "items": items,
+            "sourceErrors": source_errors,
+        }
+
+    async def apply_manual_candidate(
+        self,
+        catalog,
+        chapter: dict[str, Any],
+        source_id: str,
+        source_chapter_id: str,
+    ) -> dict[str, Any]:
+        """人工采纳指定源的指定章节：跳过自动校验门，但净化/快照/审计不跳。"""
+        from app.services.aggregate_alignment import (
+            align_candidate_chapter,
+            build_source_alignment_json,
+            classify_source_content,
+        )
+
+        source_id = str(source_id or "")
+        source_chapter_id = str(source_chapter_id or "")
+        if not source_id or not source_chapter_id:
+            raise ValueError("manual_source_or_chapter_missing")
+
+        aggregate_book_id = str(chapter.get("aggregateBookId", "") or "")
+        target_index = chapter.get("chapterIndex", 0)
+        target_title = str(chapter.get("title", "") or "")
+        try:
+            official_word_count = int(chapter.get("sourceWordCount", 0) or 0)
+        except (TypeError, ValueError):
+            official_word_count = 0
+
+        payload = self._load_aggregate_payload(aggregate_book_id)
+        primary_source_id = str(payload.get("primarySourceId", "") or "")
+        payload = await self._ensure_candidate_sources_for_book(aggregate_book_id, payload)
+        candidates = self._candidate_sources_from_payload(
+            payload, primary_source_id, aggregate_book_id, include_expansion=True,
+        )
+        cand_entry = next(
+            (c for c in candidates if str(c.get("sourceId", "") or "") == source_id),
+            None,
+        )
+        if cand_entry is None:
+            raise ValueError("manual_source_not_available")
+        cand_book_id = str(cand_entry.get("bookId", "") or "")
+
+        official_preview = str(
+            self._load_source_snapshot_content(
+                aggregate_book_id=aggregate_book_id,
+                chapter_index=target_index or 0,
+                source_id=primary_source_id,
+            ) or ""
+        ).strip()
+
+        cand_toc = await self._cached_toc(
+            catalog,
+            cand_book_id,
+            aggregate_book_id=aggregate_book_id,
+            source_id=source_id,
+        )
+        cand_chapters = [c for c in cand_toc.get("chapters", []) if isinstance(c, dict)]
+        matched_chapter: dict[str, Any] | None = None
+        for matched in self._match_candidate_toc_entries(
+            cand_chapters=cand_chapters,
+            target_index=target_index,
+            target_title=target_title,
+        ):
+            if self._resolve_manual_chapter_id(source_id, matched) == source_chapter_id:
+                matched_chapter = matched
+                break
+        if matched_chapter is None:
+            # 安全闸：只允许采纳该章实际匹配到的候选，杜绝任意章节注入。
+            raise ValueError("manual_target_not_matched")
+        candidate_title = str(matched_chapter.get("title", "") or target_title)
+
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index,
+            title=target_title,
+            event="manual_apply_start",
+            stage="stage2",
+            payload={"step": "手动选源：正在拉取并采纳",
+                     "sourceId": source_id, "candidateTitle": candidate_title},
+        )
+        async with self._source_slot(
+            aggregate_book_id=aggregate_book_id,
+            source_id=source_id,
+        ):
+            cand_result = await catalog.chapter(source_chapter_id)
+        cand_content = str(cand_result.get("content", "") or "")
+        if not cand_content.strip():
+            raise ValueError("manual_candidate_empty")
+
+        is_official = self._is_official_source(source_id)
+        candidate_word_count = self._extract_source_word_count(cand_result)
+        gate_word_count = official_word_count if official_word_count > 0 else candidate_word_count
+        cls = classify_source_content(
+            cand_content,
+            source_id=source_id,
+            is_official=is_official,
+            source_word_count=gate_word_count,
+            preview_only_hint=self._extract_preview_only(cand_result),
+            extra=cand_result.get("extra") if isinstance(cand_result.get("extra"), dict) else {},
+            is_paid=self._extract_is_paid(cand_result),
+        )
+        word_gate = self._validate_word_count(
+            cand_content, official_word_count,
+            enforce=bool(official_word_count > 0),
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index, source_id=source_id,
+        )
+        aligned = {"alignmentPassed": False, "titleSimilarity": 0.0,
+                   "previewSimilarity": 0.0, "headPreviewSimilarity": 0.0,
+                   "alignmentReason": "no_preview_available"}
+        if official_preview:
+            aligned = align_candidate_chapter(
+                official_preview=official_preview,
+                candidate_title=candidate_title,
+                candidate_content=cand_content,
+                expected_title=target_title,
+            )
+
+        source_chapter_url = self._extract_source_chapter_url(cand_result, source_chapter_id)
+        self._save_source_snapshot(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index or 0,
+            source_id=source_id,
+            source_book_id=cand_book_id,
+            source_chapter_id=source_chapter_id,
+            title=candidate_title,
+            raw_content=cand_content,
+            source_chapter_url=source_chapter_url,
+            classification="full",
+        )
+
+        alignment_json = build_source_alignment_json(
+            selected_content_source="candidate",
+            official_content_length=len(official_preview),
+            candidate_content_length=len(cand_content),
+            title_similarity=aligned.get("titleSimilarity", 0.0),
+            preview_similarity=aligned.get("previewSimilarity", 0.0),
+            head_preview_similarity=aligned.get("headPreviewSimilarity", 0.0),
+            alignment_passed=bool(aligned.get("alignmentPassed")),
+            alignment_reason=f"manual_override:{aligned.get('alignmentReason', '')}",
+            candidate_source_id=source_id,
+            primary_source_id=primary_source_id,
+        )
+        manual_meta = {
+            "chosenAt": self._now(),
+            "sourceId": source_id,
+            "sourceName": self._source_display_name(source_id, aggregate_book_id),
+            "sourceChapterId": source_chapter_id,
+            "candidateTitle": candidate_title,
+            "contentLength": len(cand_content),
+            "officialWordCount": official_word_count,
+            "classification": str(cls.get("classification", "") or ""),
+            "wordCount": {
+                "passed": bool(word_gate.get("passed")),
+                "actual": word_gate.get("actual"),
+                "expected": official_word_count,
+                "ratio": word_gate.get("ratio"),
+            },
+            "alignment": {
+                "passed": bool(aligned.get("alignmentPassed")),
+                "titleSimilarity": aligned.get("titleSimilarity", 0.0),
+                "previewSimilarity": aligned.get("previewSimilarity", 0.0),
+                "headPreviewSimilarity": aligned.get("headPreviewSimilarity", 0.0),
+                "reason": aligned.get("alignmentReason", ""),
+            },
+        }
+        alignment_json["manualSupplement"] = manual_meta
+        alignment_json["crossSourceConsensusMode"] = "manual"
+
+        result = await self._process_full_content(
+            catalog=catalog,
+            chapter=chapter,
+            content=cand_content,
+            classification={"classification": "full", "alignmentJson": alignment_json},
+            # 与自动候选路径一致：净化/词库按采纳源执行；真正的官方源 id
+            # 已显式写入 alignmentJson.primarySourceId（下方 classification 注入
+            # 会覆盖默认 alignment 构造）。
+            primary_source_id=source_id,
+            payload=payload,
+            fallback_source_id=source_id,
+            source_word_count=official_word_count,
+            primary_source_chapter_url=source_chapter_url,
+            manual_meta=manual_meta,
+        )
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=target_index,
+            title=target_title,
+            event="manual_apply_complete",
+            stage="stage2",
+            payload={"step": "手动选源采纳完成", "sourceId": source_id,
+                     "contentLength": result.get("contentLength", len(cand_content))},
+        )
+        return {"ok": True, **result, "manual": manual_meta}
 
     def _try_snapshot_candidate_content(
         self,
@@ -4096,6 +4560,14 @@ class AggregateProcessor:
         index_fallbacks.sort(key=lambda item: item[0])
         return [item[1] for item in index_fallbacks[:3]]
 
+    @staticmethod
+    def _strip_chapter_ordinal_prefix(title: str) -> str:
+        return re.sub(
+            r"^\s*第[零〇一二两三四五六七八九十百千万\d]+[章节回卷篇部集]\s*[:：、.．\-_·]*",
+            "",
+            str(title or ""),
+        ).strip()
+
     def _candidate_title_match_rank(
         self,
         target_title: str,
@@ -4110,6 +4582,16 @@ class AggregateProcessor:
         candidate_ordinal = self._chapter_ordinal_from_title(candidate_title)
         if target_ordinal is not None and candidate_ordinal is not None:
             ordinal_gap = abs(target_ordinal - candidate_ordinal)
+            # Mirrors sometimes renumber chapters (inserted extras / merged
+            # splits). When the chapter name matches but the ordinal is a few
+            # off, that is the same chapter under a different numbering scheme;
+            # rank it above an ordinal-near entry whose name differs.
+            target_name = self._strip_chapter_ordinal_prefix(target_title)
+            candidate_name = self._strip_chapter_ordinal_prefix(candidate_title)
+            if target_name and candidate_name:
+                name_similarity = chapter_title_similarity(target_name, candidate_name)
+                if name_similarity >= 0.8 and ordinal_gap <= 5:
+                    return (0, name_similarity, ordinal_gap)
             if similarity >= 0.75 and ordinal_gap <= 5:
                 return (0, similarity, ordinal_gap)
             if ordinal_gap <= 2:
@@ -4271,10 +4753,13 @@ class AggregateProcessor:
         preview_only: bool = False,
         word_count_validation: dict[str, Any] | None = None,
         lexicon_result: dict[str, Any] | None = None,
+        manual_meta: dict[str, Any] | None = None,
     ) -> None:
         if self._looks_like_garbled_text(content):
             raise ValueError("garbled chapter content")
         now = self._now()
+        is_manual = bool(manual_meta)
+        manual_meta_json = json.dumps(manual_meta or {}, ensure_ascii=False)
         trace_meta = self._build_trace_meta(
             aggregate_book_id=aggregate_book_id,
             chapter_index=chapter_index,
@@ -4305,6 +4790,7 @@ class AggregateProcessor:
                        trace_hash = ?, policy_snapshot_json = ?, policy_version = COALESCE(policy_version, 1),
                        source_snapshot_refs_json = ?,
                        source_alignment_json = ?, fallback_source_id = ?,
+                       manual_supplement = ?, manual_supplement_json = ?,
                        ai_model = '', deviation_score = 0, ai_self_score = 0,
                        ai_prompt_tokens = 0, ai_completion_tokens = 0,
                        source_word_count = ?, primary_source_chapter_url = ?, preview_only = ?,
@@ -4317,6 +4803,7 @@ class AggregateProcessor:
                  json.dumps(snapshot_refs, ensure_ascii=False),
                  json.dumps(alignment_json, ensure_ascii=False),
                  fallback_source_id,
+                 1 if is_manual else 0, manual_meta_json,
                  int(source_word_count or 0), primary_source_chapter_url or "", 1 if preview_only else 0,
                  now, chapter_id),
             )
@@ -5306,19 +5793,36 @@ class AggregateProcessor:
         chapter_index: int,
         source_id: str,
         expected_title: str = "",
+        source_chapter_id: str = "",
     ) -> str:
         if not aggregate_book_id or not chapter_index or not source_id:
             return ""
         with self._conn() as conn:
-            row = conn.execute(
-                """
-                SELECT title, clean_content
-                FROM aggregate_source_snapshots
-                WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
-                LIMIT 1
-                """,
-                (aggregate_book_id, chapter_index, source_id),
-            ).fetchone()
+            if source_chapter_id:
+                # When a specific TOC match is requested the position row may
+                # hold a different chapter (mirrors renumber chapters); never
+                # serve a snapshot captured for another chapter of the same
+                # source at the same aggregate position.
+                row = conn.execute(
+                    """
+                    SELECT title, clean_content
+                    FROM aggregate_source_snapshots
+                    WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
+                      AND source_chapter_id = ?
+                    LIMIT 1
+                    """,
+                    (aggregate_book_id, chapter_index, source_id, source_chapter_id),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    """
+                    SELECT title, clean_content
+                    FROM aggregate_source_snapshots
+                    WHERE aggregate_book_id = ? AND chapter_index = ? AND source_id = ?
+                    LIMIT 1
+                    """,
+                    (aggregate_book_id, chapter_index, source_id),
+                ).fetchone()
         if not row:
             return ""
         snapshot_title = str(row[0] or "")
@@ -5418,6 +5922,21 @@ class AggregateProcessor:
                     "alignmentReason": alignment_json.get("alignmentReason", ""),
                 },
             )
+        manual_supplement = alignment_json.get("manualSupplement")
+        if isinstance(manual_supplement, dict) and manual_supplement:
+            modification_trail.append({
+                "step": "manual_override",
+                "candidateSourceId": manual_supplement.get("sourceId", ""),
+                "sourceChapterId": manual_supplement.get("sourceChapterId", ""),
+                "chosenAt": manual_supplement.get("chosenAt", ""),
+                "classification": manual_supplement.get("classification", ""),
+                "wordCountPassed": bool(
+                    (manual_supplement.get("wordCount") or {}).get("passed")
+                ),
+                "alignmentPassed": bool(
+                    (manual_supplement.get("alignment") or {}).get("passed")
+                ),
+            })
         primary_source_id = alignment_json.get("primarySourceId", "") or book.get("primarySourceId", "")
         selected_source_id = alignment_json.get("candidateSourceId", "") or primary_source_id
         # 从 TOC 缓存读取真实 is_vip（不依赖 preview_only 推断）

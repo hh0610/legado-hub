@@ -350,6 +350,8 @@ CREATE TABLE IF NOT EXISTS aggregate_chapter_tasks (
     ai_self_score REAL DEFAULT 0.0,
     fallback_source_id TEXT,
     source_alignment_json TEXT,
+    manual_supplement INTEGER DEFAULT 0,
+    manual_supplement_json TEXT DEFAULT '',
     retry_count INTEGER DEFAULT 0,
     next_retry_time TEXT,
     last_error_code TEXT,
@@ -521,6 +523,8 @@ def _ensure_shared_library_schema(conn: sqlite3.Connection) -> None:
             "source_snapshot_refs_json": "TEXT DEFAULT ''",
             "trace_hash": "TEXT DEFAULT ''",
             "preview_retry_count": "INTEGER DEFAULT 0",
+            "manual_supplement": "INTEGER DEFAULT 0",
+            "manual_supplement_json": "TEXT DEFAULT ''",
         }
         for name, sql_type in chapter_columns.items():
             _ensure_column(conn, "aggregate_chapter_tasks", name, sql_type)

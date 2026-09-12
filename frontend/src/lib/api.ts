@@ -466,6 +466,17 @@ export const api = {
     fetchJson(`/library-books/${bookId}/chapters/${chapterId}/progress`),
   processLibraryBookChapter: (bookId: string, chapterId: string): Promise<any> =>
     fetchJson(`/library-books/${bookId}/chapters/${chapterId}/process`, { method: "POST" }),
+  scanManualChapterCandidates: (bookId: string, chapterId: string): Promise<any> =>
+    fetchJson(`/library-books/${bookId}/chapters/${chapterId}/manual-candidates/scan`, { method: "POST" }),
+  applyManualChapterCandidate: (
+    bookId: string,
+    chapterId: string,
+    payload: { sourceId: string; sourceChapterId: string },
+  ): Promise<any> =>
+    fetchJson(`/library-books/${bookId}/chapters/${chapterId}/manual-candidates/apply`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   chapter: (chapterId: string): Promise<any> =>
     fetchJson(`/chapter/${encodeURIComponent(chapterId)}`),
   pauseLibraryBook: (bookId: string): Promise<any> =>

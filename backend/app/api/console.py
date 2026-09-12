@@ -445,7 +445,7 @@ def _list_shared_library_book_chapters(
                 """
                 SELECT chapter_id, chapter_index, title, status, content_length,
                        source_word_count, preview_only, last_processed_at, updated_at,
-                       error
+                       error, manual_supplement, manual_supplement_json
                 FROM aggregate_chapter_tasks
                 WHERE aggregate_book_id = ?
                 """,
@@ -511,6 +511,15 @@ def _list_shared_library_book_chapters(
             or ""
         )
         aligned_with = str(entry.get("alignedWith") or trace.get("alignedWith") or trace.get("selectedContentSource") or "")
+        manual_supplement = bool(db_row.get("manual_supplement") or False)
+        manual_source_name = ""
+        if manual_supplement:
+            try:
+                manual_meta = json.loads(str(db_row.get("manual_supplement_json") or "{}"))
+                if isinstance(manual_meta, dict):
+                    manual_source_name = str(manual_meta.get("sourceName", "") or "")
+            except Exception:
+                manual_source_name = ""
         task_db_chapter_id = str(db_row.get("chapter_id") or "")
         if task_db_chapter_id:
             read_chapter_id = task_db_chapter_id
@@ -544,6 +553,8 @@ def _list_shared_library_book_chapters(
                 "sourceWordCount": source_word_count,
                 "previewOnly": preview_only,
                 "isVip": is_vip,
+                "manualSupplement": manual_supplement,
+                "manualSourceName": manual_source_name,
                 "file": file_name or None,
                 "error": db_row.get("error") or "",
             }
@@ -659,15 +670,24 @@ def _load_library_book_chapter_progress(book_id: str, chapter_id: str) -> dict:
     return _sanitize_chapter_progress_payload(payload)
 
 
-def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
+async def _load_library_chapter_context(book_id: str, chapter_id: str):
+    """Resolve library book → shared chapter index entry → aggregate chapter row.
+
+    Returns ``(processor, chapter_payload, error_response)``. On success the
+    error component is ``None``; on failure ``(None, None, payload)``.
+    """
     import sqlite3
 
     from app.services.aggregate_processor import AggregateProcessor
     from app.services.library_books import library_books_service
 
+    def _fail(message: str) -> tuple:
+        return None, None, {"ok": False, "bookId": book_id, "chapterId": chapter_id,
+                            "error": message}
+
     book = library_books_service.get_book(book_id)
     if not book:
-        return {"ok": False, "bookId": book_id, "chapterId": chapter_id, "error": "书籍不存在"}
+        return _fail("书籍不存在")
 
     book_name = str(book.get("name", "") or "").strip()
     author = str(book.get("author", "") or "").strip()
@@ -682,27 +702,45 @@ def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
             target_entry = entry
             break
     if target_entry is None:
-        return {"ok": False, "bookId": book_id, "chapterId": chapter_id, "error": "章节不存在"}
+        return _fail("章节不存在")
 
     processor = AggregateProcessor()
-    chapter_row = None
     with processor._conn() as conn:
         conn.row_factory = sqlite3.Row
         chapter_row = conn.execute(
             """
-            SELECT chapter_id, source_chapter_id, chapter_index, title, aggregate_book_id
+            SELECT chapter_id, source_chapter_id, chapter_index, title,
+                   aggregate_book_id, source_word_count
             FROM aggregate_chapter_tasks
             WHERE aggregate_book_id = ? AND chapter_index = ?
             """,
             (book_id, int(target_entry.get("index", 0) or 0)),
         ).fetchone()
     if not chapter_row:
-        return {"ok": False, "bookId": book_id, "chapterId": chapter_id, "error": "章节任务不存在"}
+        return _fail("章节任务不存在")
+
+    chapter_payload = {
+        "chapterId": chapter_row["chapter_id"],
+        "sourceChapterId": chapter_row["source_chapter_id"],
+        "aggregateBookId": chapter_row["aggregate_book_id"],
+        "title": chapter_row["title"],
+        "chapterIndex": chapter_row["chapter_index"],
+        "sourceWordCount": chapter_row["source_word_count"] or 0,
+    }
+    return processor, chapter_payload, None
+
+
+async def _reprocess_library_book_chapter(book_id: str, chapter_id: str) -> dict:
+    processor, chapter_payload, error = await _load_library_chapter_context(book_id, chapter_id)
+    if error is not None:
+        return error
 
     from app.services.book_catalog import BookCatalog
 
+    # 必须在主事件循环 await：asyncio.run 会新建循环，导致绑定在主循环上的
+    # PluginScheduler 信号量/浏览器桥接报 "bound to a different event loop"。
     catalog = BookCatalog()
-    result = asyncio.run(processor._process_chapter(catalog, dict(chapter_row)))
+    result = await processor._process_chapter(catalog, chapter_payload)
     return {"ok": True, "bookId": book_id, "chapterId": chapter_id, "result": result}
 
 
@@ -2895,9 +2933,54 @@ def get_library_book_chapter_progress(request: Request, book_id: str, chapter_id
 
 
 @console_route("post", "/library-books/{book_id}/chapters/{chapter_id}/process")
-def process_library_book_chapter(request: Request, book_id: str, chapter_id: str):
+async def process_library_book_chapter(request: Request, book_id: str, chapter_id: str):
     auth_service.require_admin(request)
-    return _reprocess_library_book_chapter(book_id, chapter_id)
+    return await _reprocess_library_book_chapter(book_id, chapter_id)
+
+
+@console_route("post", "/library-books/{book_id}/chapters/{chapter_id}/manual-candidates/scan")
+async def scan_library_book_manual_candidates(request: Request, book_id: str, chapter_id: str):
+    auth_service.require_admin(request)
+    processor, chapter_payload, error = await _load_library_chapter_context(book_id, chapter_id)
+    if error is not None:
+        return error
+
+    from app.services.book_catalog import BookCatalog
+
+    catalog = BookCatalog()
+    scan = await processor.scan_manual_candidates(catalog, chapter_payload)
+    return {"ok": True, "bookId": book_id, "chapterId": chapter_id, "scan": scan}
+
+
+@console_route("post", "/library-books/{book_id}/chapters/{chapter_id}/manual-candidates/apply")
+async def apply_library_book_manual_candidate(request: Request, book_id: str, chapter_id: str):
+    auth_service.require_admin(request)
+    processor, chapter_payload, error = await _load_library_chapter_context(book_id, chapter_id)
+    if error is not None:
+        return error
+
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+    source_id = str(body.get("sourceId", "") or "").strip()
+    source_chapter_id = str(body.get("sourceChapterId", "") or "").strip()
+    if not source_id or not source_chapter_id:
+        return {"ok": False, "error": "缺少 sourceId / sourceChapterId"}
+
+    from app.services.book_catalog import BookCatalog
+
+    catalog = BookCatalog()
+    try:
+        result = await processor.apply_manual_candidate(
+            catalog, chapter_payload, source_id, source_chapter_id,
+        )
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc) or "manual_apply_failed",
+                "errorCode": str(exc) or "manual_apply_failed"}
+    return {"ok": True, "bookId": book_id, "chapterId": chapter_id, "result": result}
 
 
 @console_route("post", "/library-books/{book_id}/pause")

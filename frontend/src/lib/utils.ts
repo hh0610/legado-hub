@@ -62,3 +62,23 @@ export async function copyTextToClipboard(text: string): Promise<void> {
   }
   if (!ok) throw new Error("copy failed")
 }
+
+const ALIGNMENT_REASON_LABELS: Record<string, string> = {
+  title_low: "标题相似度不足",
+  preview_low: "正文预览相似度不足",
+  head_low: "开头预览相似度不足",
+  no_preview_available: "无官方预览可对齐",
+  no_official_preview: "无官方预览",
+  alignment_failed: "对齐未通过",
+  not_available: "对齐不可用",
+  preview_high_confidence: "预览高置信度匹配",
+  title_and_preview_matched: "标题与预览匹配",
+  title_and_head_matched: "标题与开头匹配",
+}
+
+export function alignmentReasonLabel(reason: string): string {
+  if (!reason) return "相似度不足"
+  const parts = reason.split("+").map((p) => p.trim()).filter(Boolean)
+  const mapped = parts.map((p) => ALIGNMENT_REASON_LABELS[p] || p)
+  return mapped.join("、") || "相似度不足"
+}
