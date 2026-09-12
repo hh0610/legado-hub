@@ -71,6 +71,9 @@ const ALIGNMENT_REASON_LABELS: Record<string, string> = {
   no_official_preview: "无官方预览",
   alignment_failed: "对齐未通过",
   not_available: "对齐不可用",
+  preview_high_confidence: "预览高置信度匹配",
+  title_and_preview_matched: "标题与预览匹配",
+  title_and_head_matched: "标题与开头匹配",
 }
 
 export function alignmentReasonLabel(reason: string): string {
