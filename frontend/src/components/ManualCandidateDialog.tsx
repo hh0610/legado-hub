@@ -68,6 +68,23 @@ function classificationLabel(cls: string) {
   return m[cls] || cls || "判定未知"
 }
 
+const ALIGNMENT_REASON_LABELS: Record<string, string> = {
+  title_low: "标题相似度不足",
+  preview_low: "正文预览相似度不足",
+  head_low: "开头预览相似度不足",
+  no_preview_available: "无官方预览可对齐",
+  no_official_preview: "无官方预览",
+  alignment_failed: "对齐未通过",
+  not_available: "对齐不可用",
+}
+
+function alignmentReasonLabel(reason: string) {
+  if (!reason) return "相似度不足"
+  const parts = reason.split("+").map((p) => p.trim()).filter(Boolean)
+  const mapped = parts.map((p) => ALIGNMENT_REASON_LABELS[p] || p)
+  return mapped.join("、") || "相似度不足"
+}
+
 function classificationClass(cls: string) {
   if (cls === "full") return "bg-emerald-100 text-emerald-700"
   if (cls === "preview") return "bg-orange-100 text-orange-700"
@@ -89,7 +106,7 @@ function CandidateRejections({ item }: { item: ManualCandidateItem }) {
       )
     }
     if (!item.alignment.passed) {
-      reasons.push(`与官方预览对齐未过：${item.alignment.reason || "相似度不足"}`)
+      reasons.push(`与官方预览对齐未过：${alignmentReasonLabel(item.alignment.reason)}`)
     }
   }
   if (reasons.length === 0) return null
