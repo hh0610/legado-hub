@@ -625,6 +625,21 @@ def _reply_detail_list(
     root = detail.get("rootReview") if isinstance(detail.get("rootReview"), dict) else None
     replies = [item for item in detail.get("replies", []) if isinstance(item, dict)]
     target_name = str((root or {}).get("userName") or "书友")
+    debug = detail.get("debug") if isinstance(detail.get("debug"), dict) else {}
+    unsupported = debug.get("supported") is False
+    # Keep the response container even for empty results. The client uses it to
+    # distinguish an empty page from an invalid response, and retains previews.
+    if not replies or debug.get("error"):
+        failed = bool(debug.get("error")) and not unsupported
+        message = (
+            "当前书源暂不支持加载完整回复，已展示的回复仍可展开"
+            if unsupported else "回复加载失败，请重试" if failed else "暂无更多回复"
+        )
+        error_attr = ' data-reply-error="true"' if failed else ""
+        return (
+            f'<div id="reply-detail-comments"{error_attr}>'
+            + _empty_state(message) + '</div>'
+        )
     body = _folded_list(
         [_reply_row(reply, target_name=target_name) for reply in replies],
         list_id="reply-detail-comments",
@@ -1258,6 +1273,7 @@ async function loadReplyDetails(button, url) {
     const sourceList = source.getElementById("reply-detail-comments");
     const surface = button.closest(".reply-stack")?.querySelector(".reply-surface");
     if (!sourceList || !surface) throw new Error("回复分页结构不完整");
+    if (sourceList.dataset.replyError === "true") throw new Error("回复请求失败");
     appendUnique(surface, sourceList);
     const next = source.querySelector(
       '[data-auto-pagination][data-list-id="reply-detail-comments"] [data-next-page]'

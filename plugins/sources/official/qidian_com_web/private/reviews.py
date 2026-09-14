@@ -713,6 +713,32 @@ async def _fetch_chapter_end_reviews(
     return all_reviews, total
 
 
+async def _fetch_paragraph_review_page(
+    ctx, book_id: str, chapter_id: str, paragraph_id: int,
+    csrf_token: str, headers: dict, *, page: int, page_size: int,
+) -> tuple[list, int]:
+    """Read exactly the requested page; reject upstream failures as failures."""
+    response = await ctx.access.http.fetch_json(
+        f"{MOBILE_BASE}/webcommon/chapterreview/reviewlist4m",
+        params={
+            "bookId": book_id, "chapterId": chapter_id,
+            "paragraphId": paragraph_id, "page": page,
+            "pageSize": page_size, "_csrfToken": csrf_token,
+        },
+        headers=headers,
+    )
+    if not isinstance(response, dict) or response.get("code") != 0:
+        raise RuntimeError("Web paragraph review request failed")
+    data = response.get("data")
+    if not isinstance(data, dict) or not isinstance(data.get("list"), list):
+        raise RuntimeError("Invalid Web paragraph review response")
+    return (
+        [_normalize_review(item, paragraph_id, include_replies=True)
+         for item in data["list"] if isinstance(item, dict)],
+        _safe_int(data.get("total"), 0),
+    )
+
+
 async def _fetch_paragraph_reviews(
     ctx, book_id: str, chapter_id: str, paragraph_id: int, csrf_token: str, headers: dict
 , *, max_pages: int = 1

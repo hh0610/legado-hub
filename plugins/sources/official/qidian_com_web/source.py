@@ -684,17 +684,16 @@ class Source:
                 csrf_token = await self._bootstrap_csrf_token(ctx, chapter_url)
             if not csrf_token:
                 raise RuntimeError("missing _csrfToken cookie")
-            comments, total = await reviews_mod._fetch_paragraph_reviews(
+            comments, total = await reviews_mod._fetch_paragraph_review_page(
                 ctx,
                 str(book_id),
                 str(chapter_id),
                 parsed_paragraph_id,
                 csrf_token,
                 self._headers({"Referer": chapter_url or self.mobile_base_url}),
-                max_pages=page,
+                page=page,
+                page_size=page_size,
             )
-            start = (page - 1) * page_size
-            comments = comments[start:start + page_size]
             hot_comments = sorted(
                 (dict(item) for item in comments if isinstance(item, dict)),
                 key=lambda item: self._safe_int(item.get("likeNum"), 0),
@@ -708,8 +707,8 @@ class Source:
                 "totalCount": total,
                 "page": page,
                 "pageSize": page_size,
-                "hasMore": page * page_size < total,
-                "nextPage": page + 1 if page * page_size < total else None,
+                "hasMore": bool(comments) and page * page_size < total,
+                "nextPage": page + 1 if comments and page * page_size < total else None,
                 "source": "web",
             }
         except Exception as exc:
@@ -728,6 +727,26 @@ class Source:
                 "source": "web",
                 "debug": {"error": str(exc)},
             }
+
+    async def paragraph_reviews(
+        self, ctx, chapter_url: str, paragraph_id: int,
+        *, page: int = 1, page_size: int = 20,
+    ) -> dict:
+        """Expose the host's paragraph-detail method without loading other paragraphs."""
+        return await self.paragraph_say(
+            ctx, chapter_url, paragraph_id, page=page, page_size=page_size,
+        )
+
+    async def review_replies(
+        self, ctx, chapter_url: str, root_review_id: int,
+        *, page: int = 1, page_size: int = 20, cursor_id: int = 0,
+    ) -> dict:
+        """Web reviewlist4m embeds limited replies; no verified full-reply API exists."""
+        return {
+            "rootReviewId": str(root_review_id), "replies": [],
+            "totalCount": 0, "hasMore": False, "source": "web",
+            "debug": {"error": "web_full_replies_unavailable", "supported": False},
+        }
 
     async def vip_chapter_preview(
         self,

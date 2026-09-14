@@ -66,46 +66,46 @@
               if (expires) {
                 expires = new Date(+new Date() + expires);
               }
-
+        
               var tempcookie = name + '=' + escape(value) +
                 ((expires) ? '; expires=' + expires.toGMTString() : '') +
                 ((path) ? '; path=' + path : '') +
                 ((domain) ? '; domain=' + domain : '');
-
+        
               if (tempcookie.length < 4096) {
                 document.cookie = tempcookie;
               }
-
+        
               return this;
             }
           })()
         </script>
-
+        
         <meta charset="UTF-8" />
         <meta name="google" content="notranslate">
 
-
+        
       <title>宿命之环最新章节列表_宿命之环全部章节列表-起点中文网</title>
       <meta name="keywords" content="宿命之环章节,宿命之环最新章节,宿命之环全部章节">
       <meta name="description" content="宿命之环最新章节列表供网友阅读,宿命之环部分章节在线阅读。起点中文网为您创造宿命之环最新章节在线无弹窗、无广告在线阅读。">
-
+  
         <meta name="robots" content="all">
         <meta name="googlebot" content="all">
         <meta name="baiduspider" content="all">
         <meta name="format-detection" content="telephone=no">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
-
+        
         <link rel="canonical" href="https://www.qidian.com/book/1036370336/catalog/" />
         <link rel="icon" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
         <link rel="shortcut icon" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
         <link rel="Bookmark" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
-
-
-
+        
+        
+        
 
         <meta name="theme-color" content="#ffffff">
-
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        
+        <meta name="apple-mobile-web-app-capable" content="yes" /> 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
         <meta http-equiv="Cache-Control" content="no-siteapp" />
@@ -121,24 +121,24 @@
                 ((expires) ? '; expires=' + expires.toGMTString() : '') +
                 ((path) ? '; path=' + path : '') +
                 ((domain) ? '; domain=' + domain : '');
-
+      
               //Ensure the cookie's size is under the limitation
               if (tempcookie.length < 4096) {
                 document.cookie = tempcookie;
               }
             }
-
+      
             //获取cookie
             function getCookie(name) {
               var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
-
+      
               if (arr = document.cookie.match(reg))
-
+      
                 return (arr[2]);
               else
                 return null;
             }
-
+      
             //创建并发送请求
             function createSender(url) {
               var img = new Image();
@@ -147,7 +147,7 @@
               };
               img.src = url;
             }
-
+      
             /*
              *防劫持逻辑所需参数在此处设置参数即可
              *cookieName:用于记录连续被劫持的次数，为防止死循环，cookie值为3以上则不进行url重置
@@ -159,12 +159,12 @@
             var cookieDomain = '.qidian.com';
             var reportUrl = 'book.qidian.com/ajax/safe/hiijackReport?times=1&_csrfToken=' + getCookie('_csrfToken') || '';
             var reportUrl2 = 'book.qidian.com/ajax/safe/hiijackReport?times=3&_csrfToken=' + getCookie('_csrfToken') || '';
-
+      
             //判断是否被iframe
             if (top.location !== self.location) {
               //用于记录被劫持的次数
               var countHijack;
-
+      
               //如果未设置cookie，则需要set一下cookie，否则获取此cookie的值
               if (!getCookie(cookieName)) {
                 setCookie(cookieName, 0, cookieDomain, '', 30 * 24 * 60 * 60 * 1000);
@@ -172,7 +172,7 @@
               } else {
                 countHijack = parseInt(getCookie(cookieName));
               }
-
+      
               //如果连续被劫持的次数大于等于3次，则发请求上报此情况,否则上报非连续性的情况,同时累加被劫持次数、重置当前url
               if (countHijack >= 3) {
                 reportUrl2 && reportUrl2 != '' && createSender(reportUrl2);
@@ -190,7 +190,7 @@
 
         <script rel="preload" as="script" type="text/javascript" src="https://imgservices-1252317822.image.myqcloud.com/coco/s08182023/384069db.tg4r2k.js"></script>
 
-
+        
 
         <script type="module" crossorigin src="https://qdfepccdn.qidian.com/m.qidian.com/read/assets/polyfills.4ad16b01.js"></script>
         <script type="module">try{import.meta.url;import("_").catch(()=>1);}catch(e){}window.__vite_is_modern_browser=true;</script>
@@ -253,12 +253,12 @@
         </script>
 
         <script async type="text/javascript" src="https://qdfepccdn.qidian.com/openapp/ddl.0.0.16.js"></script>
-
+        
         <script async src="https://qdfepccdn.qidian.com/gtimg/lib/clipboard/clipboard.min.js"></script>
 
         <script async src="https://ywaqstatic.yuewen.com/safe_h5/js/yw_risk_verify.js"></script>
 
-
+        
         <script src="https://aegis.cdn-go.cn/aegis-sdk-v2/2.5.34/aegis.min.js"></script>
   <script>
     var guidRes = document.cookie.match('(^|;) ?ywguid=([^;]*)(;|$)')

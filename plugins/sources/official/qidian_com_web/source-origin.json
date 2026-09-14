@@ -1,8 +1,8 @@
 {
-  "commit": "ecd473603e9bbf780f767a60abe00a04d66efdef",
+  "commit": "cd4e4f750ca8723e23497231b47a2a1285edb36f",
   "dirty": false,
   "pluginId": "qidian_com_web",
   "repository": "QDFCCKK",
-  "runtimeSha256": "b23a428538b21715766fb62f7900052aad5bc67061d86fbdd4eda7a07aeaa315",
+  "runtimeSha256": "76f817053149e59e4ba2e56a72a949a4fc55927d5a05f2153e6396f053dd627f",
   "variant": "WEB-plugin"
 }

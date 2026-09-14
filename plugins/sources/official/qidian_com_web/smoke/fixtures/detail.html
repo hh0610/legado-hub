@@ -75,25 +75,25 @@
               if (expires) {
                 expires = new Date(+new Date() + expires);
               }
-
+        
               var tempcookie = name + '=' + escape(value) +
                 ((expires) ? '; expires=' + expires.toGMTString() : '') +
                 ((path) ? '; path=' + path : '') +
                 ((domain) ? '; domain=' + domain : '');
-
+        
               if (tempcookie.length < 4096) {
                 document.cookie = tempcookie;
               }
-
+        
               return this;
             }
           })()
         </script>
-
+        
         <meta charset="UTF-8" />
         <meta name="google" content="notranslate">
 
-
+        
         <title>宿命之环(爱潜水的乌贼) 小说在线阅读-首发起点中文网手机端</title>
         <meta name="keywords" content="宿命之环,宿命之环小说,宿命之环全集,宿命之环完本,宿命之环免费,宿命之环在线">
         <meta name="description" content="爱潜水的乌贼创作的玄幻小说《宿命之环》,已更新1195章,最新章节:番外：科尔杜村日常。本书的主要角色有卢米安.李、奥萝尔.李、莉雅.贝洛特、芙兰卡.罗兰、切莉娅.贝洛">
@@ -111,24 +111,24 @@
         <meta property="og:novel:update_time" content="2025-09-11 11:59:12" />
         <meta property="og:novel:latest_chapter_name" content="番外：科尔杜村日常" />
         <meta property="og:novel:latest_chapter_url" content="//m.qidian.com/chapter/1036370336/859136994/" />
-
+  
         <meta name="robots" content="all">
         <meta name="googlebot" content="all">
         <meta name="baiduspider" content="all">
         <meta name="format-detection" content="telephone=no">
         <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
-
+        
         <link rel="canonical" href="https://www.qidian.com/book/1036370336/" />
         <link rel="icon" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
         <link rel="shortcut icon" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
         <link rel="Bookmark" type="image/x-icon" href="https://imgservices-1252317822.image.myqcloud.com/coco/s03102023/b7b10602.w663ve.ico">
-
-
-
+        
+        
+        
 
         <meta name="theme-color" content="#ffffff">
-
-        <meta name="apple-mobile-web-app-capable" content="yes" />
+        
+        <meta name="apple-mobile-web-app-capable" content="yes" /> 
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
         <meta http-equiv="Cache-Control" content="no-siteapp" />
@@ -144,24 +144,24 @@
                 ((expires) ? '; expires=' + expires.toGMTString() : '') +
                 ((path) ? '; path=' + path : '') +
                 ((domain) ? '; domain=' + domain : '');
-
+      
               //Ensure the cookie's size is under the limitation
               if (tempcookie.length < 4096) {
                 document.cookie = tempcookie;
               }
             }
-
+      
             //获取cookie
             function getCookie(name) {
               var arr, reg = new RegExp("(^| )" + name + "=([^;]*)(;|$)");
-
+      
               if (arr = document.cookie.match(reg))
-
+      
                 return (arr[2]);
               else
                 return null;
             }
-
+      
             //创建并发送请求
             function createSender(url) {
               var img = new Image();
@@ -170,7 +170,7 @@
               };
               img.src = url;
             }
-
+      
             /*
              *防劫持逻辑所需参数在此处设置参数即可
              *cookieName:用于记录连续被劫持的次数，为防止死循环，cookie值为3以上则不进行url重置
@@ -182,12 +182,12 @@
             var cookieDomain = '.qidian.com';
             var reportUrl = 'book.qidian.com/ajax/safe/hiijackReport?times=1&_csrfToken=' + getCookie('_csrfToken') || '';
             var reportUrl2 = 'book.qidian.com/ajax/safe/hiijackReport?times=3&_csrfToken=' + getCookie('_csrfToken') || '';
-
+      
             //判断是否被iframe
             if (top.location !== self.location) {
               //用于记录被劫持的次数
               var countHijack;
-
+      
               //如果未设置cookie，则需要set一下cookie，否则获取此cookie的值
               if (!getCookie(cookieName)) {
                 setCookie(cookieName, 0, cookieDomain, '', 30 * 24 * 60 * 60 * 1000);
@@ -195,7 +195,7 @@
               } else {
                 countHijack = parseInt(getCookie(cookieName));
               }
-
+      
               //如果连续被劫持的次数大于等于3次，则发请求上报此情况,否则上报非连续性的情况,同时累加被劫持次数、重置当前url
               if (countHijack >= 3) {
                 reportUrl2 && reportUrl2 != '' && createSender(reportUrl2);
@@ -213,7 +213,7 @@
 
         <script rel="preload" as="script" type="text/javascript" src="https://imgservices-1252317822.image.myqcloud.com/coco/s08182023/384069db.tg4r2k.js"></script>
 
-
+        
 
         <script type="module" crossorigin src="https://qdfepccdn.qidian.com/m.qidian.com/read/assets/polyfills.4ad16b01.js"></script>
         <script type="module">try{import.meta.url;import("_").catch(()=>1);}catch(e){}window.__vite_is_modern_browser=true;</script>
@@ -556,11 +556,11 @@
 被女主足足虐杀了四十九日，死后又不解气儿，将其魂丢到茅坑中镇压无数年......
 这狗血剧情......真是我写的？？
 我要重新改写行不行啊？！
-【叮！剧情编辑器已经加载完成，宿主可通过累计经验值对当前剧情进行修改！】</div><div class="_bookTagContainer_1rj30_2697"><img class="_cycleTag_1rj30_2702" src="https://imgservices-1252317822.image.myqcloud.com/coco/s04182023/ca015a62.4wvf26.png"><p class="_cycle_1rj30_2702"><span>日更千字</span></p><a class="_category_1rj30_428" href="//m.qidian.com/category/catid21/subcatid73-male/" rel="nofollow"><span>异世大陆</span></a></div></div></div><!--]--></div></div></div><div class="_bdMoreSection_1rj30_1338 _bdMoreOther_1rj30_1381"><div class="_moduleHeader_1rj30_2277"><div class="_moduleHeaderL_1rj30_2288"><h3 class="_moduleTitle_1rj30_2336">同类热推</h3></div></div><div class="_searchTags_1rj30_2380"><!--[--><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1038523818/">诡异降临，我在末世建造禁忌神国小说</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1037806577/">趋吉避凶，从天师府开始最新章节</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1036094829/">我被女巫当成了魔神最新章节</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1041672026/">人在无限，近战无敌在线阅读</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1035354335/">武道成圣：从皇家禁地开始在线阅读</a><!--]--></div></div></div><div style="display:none;"><div class="_recommend_1rj30_302"><div class="_recomBooksWrap_1rj30_2522"><div class="_reccomicBooksContainer_1rj30_351 auto-tr" data-showeid="mqd_rec_comic" data-showl1="rec_comic" data-param="{&quot;similarwork&quot;:[&quot;18925800801179201&quot;,&quot;27377300309720701&quot;,&quot;31773841703418502&quot;,&quot;17916973308785901&quot;,&quot;7789275304629702&quot;,&quot;7788819303465602&quot;]}"><!--[--><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/18925800801179201/" title="夫人她成了大佬们的团宠在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="18925800801179201"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_18925800801179201/300" class="_bookCoverImg_1rj30_2549" alt="夫人她成了大佬们的团宠在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">夫人她成了大佬们的团宠</div><div class="_bookDesc_1rj30_2597">蓝槿快穿三年后回归，发现自己名声被搞坏，不但多了五个未婚夫，还多了五个从小世界穿来的宠母狂魔的儿子？ 被称之为废物草包的她不动声色开挂，可偏偏大佬们都争着宠她怎么办？</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/27377300309720701/" title="反派大腿我抱定了在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="27377300309720701"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_27377300309720701/300" class="_bookCoverImg_1rj30_2549" alt="反派大腿我抱定了在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">反派大腿我抱定了</div><div class="_bookDesc_1rj30_2597">竟然不慎穿书，还穿到了满头死亡flag的恶毒女二？不行，这个死亡flag，我一定要逃！
-什么！偏离人设，系统强制操纵执行！
-只能躺平，却发现触碰某人竟然能破除系统强制
-可喜可贺，为苟命，管你正派反派，这大腿我抱定了！
-系统：警告警告！你已严重偏离人设！
+【叮！剧情编辑器已经加载完成，宿主可通过累计经验值对当前剧情进行修改！】</div><div class="_bookTagContainer_1rj30_2697"><img class="_cycleTag_1rj30_2702" src="https://imgservices-1252317822.image.myqcloud.com/coco/s04182023/ca015a62.4wvf26.png"><p class="_cycle_1rj30_2702"><span>日更千字</span></p><a class="_category_1rj30_428" href="//m.qidian.com/category/catid21/subcatid73-male/" rel="nofollow"><span>异世大陆</span></a></div></div></div><!--]--></div></div></div><div class="_bdMoreSection_1rj30_1338 _bdMoreOther_1rj30_1381"><div class="_moduleHeader_1rj30_2277"><div class="_moduleHeaderL_1rj30_2288"><h3 class="_moduleTitle_1rj30_2336">同类热推</h3></div></div><div class="_searchTags_1rj30_2380"><!--[--><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1038523818/">诡异降临，我在末世建造禁忌神国小说</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1037806577/">趋吉避凶，从天师府开始最新章节</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1036094829/">我被女巫当成了魔神最新章节</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1041672026/">人在无限，近战无敌在线阅读</a><a class="_btnLineGray_1rj30_2386" href="//m.qidian.com/book/1035354335/">武道成圣：从皇家禁地开始在线阅读</a><!--]--></div></div></div><div style="display:none;"><div class="_recommend_1rj30_302"><div class="_recomBooksWrap_1rj30_2522"><div class="_reccomicBooksContainer_1rj30_351 auto-tr" data-showeid="mqd_rec_comic" data-showl1="rec_comic" data-param="{&quot;similarwork&quot;:[&quot;18925800801179201&quot;,&quot;27377300309720701&quot;,&quot;31773841703418502&quot;,&quot;17916973308785901&quot;,&quot;7789275304629702&quot;,&quot;7788819303465602&quot;]}"><!--[--><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/18925800801179201/" title="夫人她成了大佬们的团宠在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="18925800801179201"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_18925800801179201/300" class="_bookCoverImg_1rj30_2549" alt="夫人她成了大佬们的团宠在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">夫人她成了大佬们的团宠</div><div class="_bookDesc_1rj30_2597">蓝槿快穿三年后回归，发现自己名声被搞坏，不但多了五个未婚夫，还多了五个从小世界穿来的宠母狂魔的儿子？ 被称之为废物草包的她不动声色开挂，可偏偏大佬们都争着宠她怎么办？</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/27377300309720701/" title="反派大腿我抱定了在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="27377300309720701"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_27377300309720701/300" class="_bookCoverImg_1rj30_2549" alt="反派大腿我抱定了在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">反派大腿我抱定了</div><div class="_bookDesc_1rj30_2597">竟然不慎穿书，还穿到了满头死亡flag的恶毒女二？不行，这个死亡flag，我一定要逃！
+什么！偏离人设，系统强制操纵执行！
+只能躺平，却发现触碰某人竟然能破除系统强制
+可喜可贺，为苟命，管你正派反派，这大腿我抱定了！
+系统：警告警告！你已严重偏离人设！
 宁依：闪开！姐要开始逆袭了，这炮灰谁爱当谁当！</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/31773841703418502/" title="我的无敌反套路在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="31773841703418502"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_31773841703418502/300" class="_bookCoverImg_1rj30_2549" alt="我的无敌反套路在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">我的无敌反套路</div><div class="_bookDesc_1rj30_2597">别跟我提素质，能赢才是王道。我李向阳就是套路脏，就是卑鄙，就是无耻怎么了，有本是你打赢我啊！我不要脸，所以我无敌！虽说男人不坏女人不爱，但是美女不好意思，本帅暂时无心谈恋爱！</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/17916973308785901/" title="大佬失忆后只记得我在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="17916973308785901"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_17916973308785901/300" class="_bookCoverImg_1rj30_2549" alt="大佬失忆后只记得我在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">大佬失忆后只记得我</div><div class="_bookDesc_1rj30_2597">机长兼财团继承人傅南礼，车祸失忆只记得拼死救他的温乔 扫地出门的才女温乔，莫名重生还得了一种“离开傅南礼就会死的病” 众名媛：“都说傅大公子腹黑深沉，怎么就栽在这满嘴谎话的小狐狸精身上了？” 某大佬目光轻漫：“不将计就计，怎么把小狐狸拐回家？”</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/7789275304629702/" title="霸情恶少：宠婚小逃妻在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="7789275304629702"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_7789275304629702/300" class="_bookCoverImg_1rj30_2549" alt="霸情恶少：宠婚小逃妻在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">霸情恶少：宠婚小逃妻</div><div class="_bookDesc_1rj30_2597">“用这么另类的方式吸引我，你成功了……”“你……你别乱来！” 忍耐忍耐！对猪一般的总裁要拿出神一般的宽容来！7年前，一场意外，杜漫宁成了未婚妈妈，生活天翻地覆。如今，罪魁祸首终于现身，还成了她的老板！一个扮丑逃避，一个穷追不舍，他们之间会擦出怎样的火花？</div><div class="_category_1rj30_428">漫画</div></div></a><a class="_bookListItem_1rj30_355 auto-click-tr" href="//m.qidian.com/comicbook/7788819303465602/" title="我的天使在线阅读" data-l1="rec_comic" data-eid="mqd_rec_comic" data-bid="7788819303465602"><div class="_cornerMark_1rj30_364"></div><div class="_bookCoverContainer_1rj30_2544"><img src="https://imgservices-1252317822.image.myqcloud.com/coco/s06272023/b412ecf2.e7k0cq.png" data-src="http://cover-1252317822.image.myqcloud.com/qdbimg/349573/m_7788819303465602/300" class="_bookCoverImg_1rj30_2549" alt="我的天使在线阅读"></div><div class="_bookInfoContainer_1rj30_2592"><div class="_bookName_1rj30_378">我的天使</div><div class="_bookDesc_1rj30_2597">向流星许愿就能实现愿望？还有超能力？初梦成为了被星星选中的幸运儿，他又将怎样用她的超能力追求属于自己的青涩记忆呢？</div><div class="_category_1rj30_428">漫画</div></div></a><!--]--></div></div></div></div><!--]--><!----><div class="_box_a6c3f_469" data-v-f9a18d0f><!----></div><div class="_ttsLinks_m8lyn_2" data-v-f9a18d0f><!--[--><a href="//m.qidian.com/ttsbook/1036370336/1/"></a><a href="//m.qidian.com/ttsbook/1036370336/2/"></a><a href="//m.qidian.com/ttsbook/1036370336/3/"></a><a href="//m.qidian.com/ttsbook/1036370336/4/"></a><a href="//m.qidian.com/ttsbook/1036370336/5/"></a><a href="//m.qidian.com/ttsbook/1036370336/6/"></a><a href="//m.qidian.com/ttsbook/1036370336/7/"></a><a href="//m.qidian.com/ttsbook/1036370336/8/"></a><a href="//m.qidian.com/ttsbook/1036370336/9/"></a><a href="//m.qidian.com/ttsbook/1036370336/10/"></a><!--]--></div></div><!----></div><!----><!--]--></div><div style="display:none;"><span><a href="//m.qidian.com/">首页</a><!--[--><!--[--><a href="//m.qidian.com/category/catid21/" target="_blank">玄幻小说</a><!--]--><!--[--><a href="//m.qidian.com/category/catid21/subcatid73-male/" target="_blank">异世大陆小说</a><!--]--><!--[--><h2>宿命之环</h2><!--]--><!--]--></span></div><footer data-l1="40"><div class="_footerBackTop_18xda_197"><div class="_footerBackTopCell_18xda_203 jsGuestWrapper"><strong>登录后获得更多特色功能</strong><span class="char-dot">·</span><a href="javascript:" class="_blue_18xda_251 jsLogin" data-eid="mqd_A49"> 立即登录 </a></div></div><div class="_footerLink_18xda_290"><a href="//ubook.reader.qq.com" class="_footerLinkA_18xda_339 _iconLink_18xda_346"><i class="y-icon" style="font-size:.2rem;color:;"><em class="y-icon__node"><img class="y-icon__image" src="https://imgservices-1252317822.image.myqcloud.com/coco/s12292022/5f9e01c5.hli9bu.png" alt="icon"></em><!----><!----><!----></i> QQ阅读 </a><a href="//m.hongxiu.com" class="_footerLinkA_18xda_339 _iconLink_18xda_346"><i class="y-icon" style="font-size:.2rem;color:;"><em class="y-icon__node"><img class="y-icon__image" src="https://imgservices-1252317822.image.myqcloud.com/coco/s12292022/9f9592bf.muayzj.png" alt="icon"></em><!----><!----><!----></i> 红袖添香 </a><a href="//m.qidian.com/ziyuan" class="_footerLinkA_18xda_339 _iconLink_18xda_346" aria-label="资源站"> 起点资源站 </a><!--[--><!--]--><!--[--><!--]--></div><div class="_footerLink_18xda_290"><div class="auto-tr _footerLinkA_18xda_339" data-is_daoliu="1" data-bid data-cid data-showeid="m_footer_app"><!--[--><a id="baseFooterdownLoadApp">客户端</a><!--]--></div><a href="https://m.qidian.com" class="_footerLinkA_18xda_339 _dark_18xda_363"> 触屏版 </a><a href="https://m.qidian.com/user/help/" class="_footerLinkA_18xda_339"> 帮助与客服 </a><a href="https://m.qidian.com/so/" class="_footerLinkA_18xda_339"> 搜索 </a></div><div class="_footerCopy_18xda_402"> 网站备案/许可证号： <a href="http://beian.miit.gov.cn">沪B2-20080046-1</a><a class="_blockA_18xda_193" target="_blank" href="https://imgservices-1252317822.image.myqcloud.com/coco/s11062023/655b2b94.f2jl6x.png"><span>互联网宗教信息服务许可证 编号：沪（2022）0000022</span></a><div>copyright © 2002-2026 m.qidian.com</div></div></footer><!----><!----><!----><!----></div><!--]-->
         </div>
         <script crossorigin="anonymous" src=""></script>
@@ -600,12 +600,12 @@
         </script>
 
         <script async type="text/javascript" src="https://qdfepccdn.qidian.com/openapp/ddl.0.0.16.js"></script>
-
+        
         <script async src="https://qdfepccdn.qidian.com/gtimg/lib/clipboard/clipboard.min.js"></script>
 
         <script async src="https://ywaqstatic.yuewen.com/safe_h5/js/yw_risk_verify.js"></script>
 
-
+        
         <script src="https://aegis.cdn-go.cn/aegis-sdk-v2/2.5.34/aegis.min.js"></script>
   <script>
     var guidRes = document.cookie.match('(^|;) ?ywguid=([^;]*)(;|$)')

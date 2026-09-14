@@ -12,6 +12,24 @@ from app.source_plugins.loader import PluginLoader
 from app.source_plugins.smoke import FixtureFetcher
 
 
+@pytest.mark.parametrize("debug,failed,message", [
+    ({}, False, "暂无更多回复"),
+    ({"error": "web_full_replies_unavailable", "supported": False}, False, "暂不支持加载完整回复"),
+    ({"error": "upstream failure"}, True, "回复加载失败"),
+])
+def test_reply_detail_empty_and_failure_states(debug, failed, message):
+    from lxml import html
+    from app.services.reading_reviews import render_chapter_reviews_html
+
+    rendered = render_chapter_reviews_html(
+        chapter_title="测试", reviews={}, review_view_url="/reviews/view",
+        reply_detail={"replies": [], "debug": debug},
+    )
+    container = html.fromstring(rendered).get_element_by_id("reply-detail-comments")
+    assert message in container.text_content()
+    assert (container.get("data-reply-error") == "true") is failed
+
+
 def _write_reading_plugin(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     plugin_id = "fixture_reading"
     plugin_dir = tmp_path / plugin_id
