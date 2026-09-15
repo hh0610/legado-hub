@@ -27,9 +27,9 @@ from app.core.public_security import (
 #   now (ms). Keep _READER_RULE_VERSION unchanged so the name does not churn.
 # - FORMAL app release (git tag vX.Y.Z): bump BOTH — version (shown in name /
 #   comment / jsLib) and RELEASED_AT_MS.
-_READER_RULE_VERSION = "0.0.30"
+_READER_RULE_VERSION = "0.0.31"
 # Last beta marker: header no-ajax so login sheet can open (ms). Bump this alone for tests.
-_READER_RULE_RELEASED_AT_MS = 1789400651657
+_READER_RULE_RELEASED_AT_MS = 1789453118750
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
