@@ -39,10 +39,21 @@ class Source:
         """Search the title index and enrich the first sparse results."""
         if page > 1:
             return []
-        search_keyword = ctx.to_traditional(keyword.strip())
-        url = f"{self.base_url}/mzwlist/{quote(search_keyword, safe='')}.html"
-        html = await self._fetch(ctx, url)
-        items = self._parse_search(ctx, html)
+        keyword = keyword.strip()
+        search_keyword = ctx.to_traditional(keyword)
+        # The site's title index misses longer keywords at times; fall back to
+        # progressively shorter prefixes and filter the results locally.
+        keywords = [search_keyword]
+        for size in (3, 2):
+            if len(search_keyword) > size and search_keyword[:size] not in keywords:
+                keywords.append(search_keyword[:size])
+        items: list[dict] = []
+        for kw in keywords:
+            url = f"{self.base_url}/mzwlist/{quote(kw, safe='')}.html"
+            html = await self._fetch(ctx, url)
+            items = self._parse_search(ctx, html)
+            if items:
+                break
         exact = [item for item in items if keyword and keyword in item.get("name", "")]
         return await enrich_search_items_from_detail(self, ctx, exact or items)
 

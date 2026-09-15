@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: hjwzw_com
 name: 黄金屋中文
 author: Yunwei
-version: 0.1.2
+version: 0.1.3
 type: source
 domains:
   - tw.hjwzw.com
@@ -23,10 +23,14 @@ auth:
   cookieDomains: []
 content:
   access: free
+proxy:
+  mode: always
+  required: true
 tags:
   - html
   - no-login
   - traditional-chinese
+  - proxy
 sourceSeed:
   type: live
   upstreamId: hjwzw_com

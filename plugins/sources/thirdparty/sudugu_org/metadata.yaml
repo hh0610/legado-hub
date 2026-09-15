@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: sudugu_org
 name: 速读谷
 author: Yunwei
-version: 0.1.4
+version: 0.1.5
 type: source
 domains:
   - sudugu.org

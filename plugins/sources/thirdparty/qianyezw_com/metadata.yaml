@@ -2,13 +2,15 @@ contractVersion: "1.0"
 id: qianyezw_com
 name: 新御书屋
 author: Yunwei
-version: 0.1.0
+version: 0.1.1
 type: source
 domains:
+  - www.qianyew.com
+  - qianyew.com
   - www.qianyezw.com
   - qianyezw.com
 baseUrls:
-  - https://www.qianyezw.com
+  - https://www.qianyew.com
 capabilities:
   - search
   - detail
@@ -26,9 +28,14 @@ content:
 proxy:
   mode: auto
   required: false
+browser:
+  mode: required
+  reason: js_fingerprint_challenge
 tags:
   - html
   - no-login
+  - browser
+  - cloudflare
 sourceSeed:
   type: live
   upstreamId: qianyezw_com

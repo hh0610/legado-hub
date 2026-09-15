@@ -1,10 +1,10 @@
 keyword: 山野归鸿
 fixtures:
   search:
-    url: "http://www.aiqu654.com/search.asp?word=%C9%BD%D2%B0%B9%E9%BA%E8"
+    url: "https://www.aiqu226.com/search.asp?word=%C9%BD%D2%B0%B9%E9%BA%E8"
     file: search.html
   detail:
-    url: "http://www.aiqu654.com/txt-xx/15/txt-282570.htm"
+    url: "https://www.aiqu226.com/txt-xx/15/txt-282570.htm"
     file: detail.html
   toc:
     url: "https://mg.downbook12.com/txt-xx/UploadFile/2026-7/%E3%80%8A%E5%B1%B1%E9%87%8E%E5%BD%92%E9%B8%BF%EF%BC%88%E7%A7%8D%E7%94%B0%EF%BC%89%E3%80%8B%E4%BD%9C%E8%80%85%EF%BC%9A%E5%B7%AB%E5%B1%B1%E6%9C%89%E6%AE%B5%E4%BA%91.txt"
@@ -13,7 +13,7 @@ fixtures:
     url: "https://mg.downbook12.com/txt-xx/UploadFile/2026-7/%E3%80%8A%E5%B1%B1%E9%87%8E%E5%BD%92%E9%B8%BF%EF%BC%88%E7%A7%8D%E7%94%B0%EF%BC%89%E3%80%8B%E4%BD%9C%E8%80%85%EF%BC%9A%E5%B7%AB%E5%B1%B1%E6%9C%89%E6%AE%B5%E4%BA%91.txt"
     file: download.txt
 extraFixtures:
-  - url: "http://www.aiqu127.com/txt-xx/softdownfree.asp?softid=282570&ckm=mianfei"
+  - url: "https://www.aiqu226.com/txt-xx/softdownfree.asp?softid=282570&ckm=mianfei"
     file: download-page.html
 expect:
   search:

@@ -2,17 +2,19 @@ contractVersion: "1.0"
 id: aiqu654_com
 name: 爱去小说网
 author: Yunwei
-version: 0.1.0
+version: 0.1.1
 priority: 40
 type: source
 domains:
+  - www.aiqu226.com
+  - aiqu226.com
   - www.aiqu654.com
   - aiqu654.com
   - www.aiqu127.com
   - aiqu127.com
   - mg.downbook12.com
 baseUrls:
-  - http://www.aiqu654.com
+  - https://www.aiqu226.com
 capabilities:
   - search
   - detail

@@ -1,4 +1,4 @@
-"""Plugin for 爱去小说网 (aiqu654.com)."""
+"""Plugin for 爱去小说网 (aiqu226.com; rotated from aiqu654.com)."""
 
 from __future__ import annotations
 
@@ -19,14 +19,17 @@ class Source:
     id = "aiqu654_com"
     name = "爱去小说网"
     contract_version = "1.0"
-    last_modified = "2026-07-31"
-    base_url = "http://www.aiqu654.com"
-    download_page_base = "http://www.aiqu127.com"
+    last_modified = "2026-09-15"
+    base_url = "https://www.aiqu226.com"
+    download_page_base = "https://www.aiqu226.com"
 
     async def _fetch_page(self, ctx, url: str) -> str:
         return await ctx.access.http.fetch_text(url)
 
     async def _fetch_txt(self, ctx, url: str, **kwargs) -> bytes:
+        # Whole-book TXT is ~1.4 MB and the file host can be slow; don't let
+        # the host's short default fetch timeout cut the download short.
+        kwargs.setdefault("timeout", 30.0)
         return await ctx.access.stealth.fetch_bytes(url, **kwargs)
 
     async def search(self, ctx, keyword: str, page: int) -> list[dict]:
@@ -271,4 +274,4 @@ class Source:
 
     def _book_url(self, value: str) -> str:
         url = urljoin(self.base_url, (value or "").strip())
-        return re.sub(r"^https://www\.aiqu654\.com", self.base_url, url)
+        return re.sub(r"^https?://www\.aiqu(?:654|127|226)\.com", self.base_url, url)

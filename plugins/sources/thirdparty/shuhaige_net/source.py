@@ -77,7 +77,10 @@ class Source:
         items = []
         # Primary domain is www.shuhaige.net; keep mobile fallbacks for resilience.
         attempts = [
-            ("https://www.shuhaige.net", "https://www.shuhaige.net/search.html", "POST", {"searchkey": keyword, "searchtype": "all"}, {}, "#sitembox > dl"),
+            # The first POST of a fresh session lands on a "错误提示" page; a
+            # second POST (by then the site has issued its cookie) succeeds.
+            ("https://www.shuhaige.net", "https://www.shuhaige.net/search.html", "POST", {"searchkey": keyword, "searchtype": "all"}, {"referer": "https://www.shuhaige.net/"}, "#sitembox > dl"),
+            ("https://www.shuhaige.net", "https://www.shuhaige.net/search.html", "POST", {"searchkey": keyword, "searchtype": "all"}, {"referer": "https://www.shuhaige.net/"}, "#sitembox > dl"),
             ("https://www.shuhaige.net", "https://www.shuhaige.net/search.html", "GET", {"keyword": keyword}, {}, "#sitembox > dl"),
             ("https://m.shuhaige.net", "https://m.shuhaige.net/search.html", "POST", {"searchkey": keyword}, self.headers, "#sitembox > dl, .bookinfo a"),
             (self.base_url, f"{self.base_url}/search.html", "GET", {"keyword": keyword}, self.headers, ".bookinfo a, .list-item a, a[href*=\"/book/\"]"),

@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: shuhaige_net
 name: 书海阁小说网
 author: Yunwei
-version: 0.1.2
+version: 0.1.3
 type: source
 domains:
   - www.shuhaige.net

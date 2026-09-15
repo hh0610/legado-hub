@@ -1,4 +1,4 @@
-"""Plugin for 新御书屋 (qianyezw.com)."""
+"""Plugin for 新御书屋 (qianyew.com; formerly qianyezw.com)."""
 
 from __future__ import annotations
 
@@ -15,10 +15,18 @@ class Source:
     name = "新御书屋"
     contract_version = "1.0"
     last_modified = "2026-07-30"
-    base_url = "https://www.qianyezw.com"
+    base_url = "https://www.qianyew.com"
 
     async def _fetch(self, ctx, url: str, **kwargs) -> str:
-        return await ctx.access.http.fetch_text(urljoin(self.base_url, url), **kwargs)
+        # The site fronts every request with a browser-fingerprint challenge,
+        # so pages must be rendered through the access bridge.
+        return await ctx.access.browser.fetch_text(
+            urljoin(self.base_url, url),
+            stage="page",
+            wait_ms=2500,
+            timeout_ms=45000,
+            **kwargs,
+        )
 
     def _url(self, value: str) -> str:
         return urljoin(self.base_url, (value or "").strip())

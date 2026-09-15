@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: sto_com
 name: 思兔阅读
 author: Yunwei
-version: 0.1.2
+version: 0.1.3
 type: source
 domains:
   - sto9.com
@@ -22,10 +22,24 @@ auth:
   cookieDomains: []
 content:
   access: free
+proxy:
+  mode: always
+  required: true
+accessStrategy:
+  search: stealth_http
+  detail: stealth_http
+  toc: stealth_http
+  chapter: stealth_http
+browser:
+  mode: optional
+  reason: cloudflare_session_refresh
 tags:
   - html
   - no-login
   - traditional-chinese
+  - proxy
+  - cloudflare
+  - impersonate
 sourceSeed:
   type: live
   upstreamId: sto_com

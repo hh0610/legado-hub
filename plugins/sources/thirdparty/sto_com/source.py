@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 from bs4 import BeautifulSoup
 
@@ -29,22 +29,21 @@ class Source:
         return ctx.to_simplified(value or "").strip()
 
     async def _fetch(self, ctx, url: str, **kwargs) -> str:
-        """Fetch a site page through the host-owned HTTP bridge."""
-        return await ctx.access.http.fetch_text(
+        """Fetch a site page through the stealth HTTP bridge (Cloudflare)."""
+        return await ctx.access.stealth.fetch_text(
             urljoin(self.base_url, url),
             headers=self.headers,
             **kwargs,
         )
 
     async def search(self, ctx, keyword: str, page: int) -> list[dict]:
-        """Search titles through the site's form endpoint."""
-        if page > 1 or not keyword.strip():
+        """Search titles through the site's paginated search path."""
+        keyword = keyword.strip()
+        if not keyword:
             return []
         html = await self._fetch(
             ctx,
-            "/search",
-            method="POST",
-            data={"searchkey": keyword.strip(), "searchtype": "all", "submit": "Search"},
+            f"/search/{quote(keyword, safe='')}/{max(1, page)}.html",
         )
         items = self._parse_search(ctx, html)
         exact = [item for item in items if item.get("name") == keyword.strip()]

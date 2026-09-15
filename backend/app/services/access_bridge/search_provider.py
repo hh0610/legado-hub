@@ -167,6 +167,7 @@ async def duckduckgo_library_search(
     target_domain: str,
     query_site_path: str = "",
     max_results: int = 10,
+    proxy: str = "",
 ) -> list[dict[str, Any]]:
     """Run DuckDuckGo search through the optional DDGS Python package."""
     query = build_site_query(
@@ -184,9 +185,9 @@ async def duckduckgo_library_search(
             except ImportError as exc:
                 raise RuntimeError("ddgs is not installed") from exc
         last_error: Exception | None = None
-        for _attempt in range(3):
+        for _attempt in range(2):
             try:
-                with DDGS(timeout=12) as ddgs:
+                with DDGS(timeout=8, proxy=proxy or None) as ddgs:
                     rows = list(ddgs.text(
                         query,
                         region="wt-wt",

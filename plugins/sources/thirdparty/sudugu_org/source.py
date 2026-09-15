@@ -191,6 +191,13 @@ class Source:
         stem = path.rsplit(".", 1)[0] if "." in path else path
         return re.sub(r"[-_]\d+$", "", stem)
 
+    def _bump_chapter_id(self, url: str) -> str:
+        """Return the page with the chapter id incremented by one."""
+        m = re.search(r"(\d+)(\.html)", url.split("?")[0].split("#")[0])
+        if not m:
+            return ""
+        return url[: m.start(1)] + str(int(m.group(1)) + 1) + url[m.end(1):]
+
     def _clean_chapter_content(self, html: str) -> str:
         soup = BeautifulSoup(html or "", "html.parser")
         for tag in soup.find_all(["script", "style", "nav", "header", "footer", "iframe", "ins", "center"]):
@@ -225,6 +232,15 @@ class Source:
                 title = ctx.text(html, ".submenu > h1") or ctx.text(html, "h1")
             content_html = ctx.html(html, ".con") or ctx.html(html, "#content")
             content = self._clean_chapter_content(content_html)
+            if not content:
+                # Some chapter ids render as empty interstitials; the real body
+                # sits on the page with the id bumped by one.
+                bumped_url = self._bump_chapter_id(current_url)
+                if bumped_url and bumped_url not in visited_urls:
+                    visited_urls.add(bumped_url)
+                    html = await ctx.access.http.fetch_text(bumped_url)
+                    content_html = ctx.html(html, ".con") or ctx.html(html, "#content")
+                    content = self._clean_chapter_content(content_html)
             if content:
                 parts.append(content)
             next_url = ""

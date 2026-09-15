@@ -21,7 +21,11 @@ from urllib.parse import urlparse
 from app.services.access_bridge.models import AccessFetchRequest, SearchProviderHit
 from app.services.access_bridge.config import DEFAULT_BROWSER_IMPERSONATE, default_browser_user_agent
 from app.services.access_bridge.profiles import make_profile_id
-from app.services.access_bridge.search_provider import DEFAULT_HEADERS, search_site
+from app.services.access_bridge.search_provider import (
+    DEFAULT_HEADERS,
+    duckduckgo_library_search as search_site_ddg,
+    search_site,
+)
 from app.source_plugins.errors import CloudflareRequired
 
 
@@ -441,12 +445,24 @@ class SourceAccessBridge:
                 proxy=proxy,
             )
 
+        async def _fetch_ddg(keyword: str, *, target_domain: str, query_site_path: str, max_results: int):
+            # The DDGS library builds its own HTTP client, so hand it the
+            # plugin's resolved proxy explicitly or it bypasses host policy.
+            return await search_site_ddg(
+                keyword,
+                target_domain=target_domain,
+                query_site_path=query_site_path,
+                max_results=max_results,
+                proxy=getattr(fetcher, "proxy_url", "") or "",
+            )
+
         hits = await search_site(
             keyword,
             target_domain=target_domain,
             url_patterns=url_patterns,
             provider_order=provider_order,
             fetch_text=_fetch_provider_page,
+            fetch_ddg=_fetch_ddg,
             query_site_path=query_site_path,
             limit=limit,
         )

@@ -1,33 +1,33 @@
-keyword: 金榜题名时
+keyword: 凡人修仙传
 fixtures:
   search:
-    url: https://tw.mingzw.net/mzwlist/%E9%87%91%E6%A6%9C%E9%A1%8C%E5%90%8D%E6%99%82.html
+    url: https://tw.mingzw.net/mzwlist/%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E5%82%B3.html
     file: search.html
   detail:
-    url: https://tw.mingzw.net/mzwbook/47453.html
+    url: https://tw.mingzw.net/mzwbook/17482.html
     file: detail.html
   toc:
-    url: https://tw.mingzw.net/mzwchapter/47453.html
+    url: https://tw.mingzw.net/mzwchapter/17482.html
     file: toc.html
   chapter:
-    url: https://tw.mingzw.net/mzwread/47453_15612627.html
+    url: https://tw.mingzw.net/mzwread/17482_3305.html
     file: chapter.html
 expect:
   search:
     minResults: 1
-    firstName: 金榜题名时，才发现妻子是三圣母
+    firstName: 凡人修仙传
   detail:
-    name: 金榜题名时，才发现妻子是三圣母
-    author: 在下常空军
+    name: 凡人修仙传
+    author: 忘语
     hasTocUrl: true
   toc:
     complete: true
-    expectedCount: 218
-    minChapters: 200
-    firstTitleContains: 第一章
-    lastTitleContains: 终点
+    expectedCount: 2455
+    minChapters: 2000
+    firstTitleContains: 第一千九百六十章
+    lastTitleContains: 感言
     requireUniqueChapterUrls: true
     requireSequentialIndexes: true
   chapter:
     minContentLength: 500
-    titleContains: 第一章
+    titleContains: 第一千九百六十章

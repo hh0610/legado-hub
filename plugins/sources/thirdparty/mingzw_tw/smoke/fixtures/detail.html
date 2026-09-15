@@ -1,930 +1,926 @@
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>
-        金榜題名時，才發現妻子是三圣母最新章節,金榜題名時，才發現妻子是三圣母全本在線閱讀-偏方方-明智屋</title>
-    <meta name="Keywords" content="金榜題名時，才發現妻子是三圣母,金榜題名時，才發現妻子是三圣母最新章節,金榜題名時，才發現妻子是三圣母在線閱讀,明智屋" />
-    <meta name="Description" content="明智屋小說網推薦作者在下常空軍的金榜題名時，才發現妻子是三圣母最新章節,金榜題名時，才發現妻子是三圣母全本免費在線閱讀" />
-    <link href="https://tw.mingzw.net/mingzw/css/bookcss1.css" rel="stylesheet" type="text/css" />
-    <link href="https://tw.mingzw.net/mingzw/css/bookcss2.css" rel="stylesheet" type="text/css" />
-    <link href="https://tw.mingzw.net/mingzw/css/bookcss3.css" rel="stylesheet" type="text/css" />
-    <script type="text/javascript" src="https://tw.mingzw.net/js/jquery.js"></script>
-    <script type="text/javascript" src="https://tw.mingzw.net/mingzw/register_js/register.js"></script>
-    <script type="text/javascript" src="https://tw.mingzw.net/mingzw/register_js/js_login.js"></script>
-    <script language="javascript" type="text/javascript" charset="utf-8">
-        $(document).ready(function () {
-            if (top.location != this.location) {
-                top.location = this.location;
-            }
-            document.onkeydown = KeyDown;
-
-            var Referer = document.referrer;
-            $.getScript("https://www.mingzw.net/Count.aspx?bookid=47453&hot=5&referer=" + escape(document.referrer));
-        });
-
-        function AddBookMark() {
-            $.getScript("https://www.mingzw.net/AddBookMark.aspx?bookid=47453");
-            HideAddBtn();
-        }
-
-        function HideAddBtn() {
-            $("#Btn_AddBookMark").text("已經收藏");
-        }
-
-        function RemoveBookMark() {
-            $.getScript("https://www.mingzw.net/RemoveBookMark.aspx?bookid=" + 47453 + "&nojump=1");
-
-            $("#Btn_AddBookMark").show();
-        }
-
-        function ShowLastRead(BookId, ChapterId, ChapterName) {
-            $("#LastView").html(
-                "<a href=\"/mzwread/" + BookId + "_" + ChapterId + ".html\" style=\"color:red;\" >"
-                + ChapterName + "</a>");
-        }
-
-        function KeyDown() {
-            if (event.keyCode == 13) {
-                Search("#SearchTxt");
-                return false;
-            }
-        }
-        function Search(obj) {
-            var keywords = $(obj).val();
-            if (keywords != null || keywords != "") {
-                top.location = "/mzwlist/" + keywords + ".html";
-            }
-            return false;
-        }
-    </script>
-    <script language="javascript" type="text/javascript" charset="utf-8">
-        function post_login() {
-            if (document.getElementById("u_name").value != "" && document.getElementById("u_password").value != "") {
-                var xmlDom;
-                try {
-                    xmlDom = new XMLHttpRequest(); //嘗試創建 XMLHttpRequest 對象。
-                } catch (E) {
-                    try {
-                        xmlDom = new ActiveXObject("Msxml2.XMLHTTP"); //嘗試使用較新版本的 Microsoft 瀏覽器創建 Microsoft 兼容的對象（Msxml2.XMLHTTP）。
-                    }
-                    catch (E) {
-                        try {
-                            xmlDom = new ActiveXObject("Microsoft.XMLHTTP"); // 如果失敗（catch (othermicrosoft)）嘗試使用較老版本的 Microsoft 瀏覽器創建 Microsoft 兼容的對象（Microsoft.XMLHTTP）。
-                        }
-                        catch (E) {
-
-                        }
-                    }
-                }
-
-                xmlDom.onreadystatechange = function () {
-                    if (xmlDom.readyState == 4 && xmlDom.status == 200) {
-                        if (xmlDom.responseText == "no") {
-                            window.location.href = '/mingzw/Register.aspx';
-                        }
-                        else {
-                            alert(xmlDom.responseText);
-                            var arr = xmlDom.responseText.split(")(");
-                            var uid = arr[1];
-                            var wn = uid + "+" + document.getElementById("u_name").value;
-                            setCookie("www.mingzw.com-bookshelf", wn, 365);
-                            document.getElementById("userlogin").innerHTML = "歡迎您： <b style='color:green'>" + document.getElementById("u_name").value + "</b>  ; （您可以進入您的 <a href=\"/mingzw/Bookshelf.aspx\" style=\"color:red;\">書架</a>）   <a href=\"/mingzw/Bookshelf.aspx\" style=\"float: right;color:red;\">我的書架</a>";
-                            //return true;
-                        }
-                    }
-                }
-                var uname = document.getElementById("u_name").value;
-                var upassw = document.getElementById("u_password").value;
-                xmlDom.open("POST", "/mingzw/login.aspx?u_name=" + uname + "&u_password=" + upassw + "&fresh=" + new Date().getTime(), true);
-
-                // xmlDom.open("POST", "login.aspx?u_name=asdf&u_password=1234", true);
-                xmlDom.send();
-            }
-            else {
-                window.location.href = '/mingzw/Register.aspx';
-            }
-        }
-        function setCookie(c_name, value, exdays) {
-            var exdate = new Date();
-            exdate.setDate(exdate.getDate() + exdays);
-            var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString()) + "; path=/";
-            document.cookie = c_name + "=" + c_value;
-        }
-    </script>
-    <script type="text/javascript">
-        function getweekhots() {
-            document.getElementById("weekbook").style.display = "block";
-            document.getElementById("mothbook").style.display = "none";
-            document.getElementById("li_week").className = "active";
-            document.getElementById("li_month").className = "";
-        }
-        function getmonthhots() {
-            document.getElementById("weekbook").style.display = "none";
-            document.getElementById("mothbook").style.display = "block";
-            document.getElementById("li_week").className = "";
-            document.getElementById("li_month").className = "active";
-        }
-    </script>
-
-    <!-- Global site tag (gtag.js) - Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YXLKZXV6XT"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag() { dataLayer.push(arguments); }
-    gtag('js', new Date());
-
-    gtag('config', 'G-YXLKZXV6XT');
-    </script>
-</head>
-<body class="p-index">
-    <form method="post" action="./Book.aspx?bookid=47453" id="form1">
-<div class="aspNetHidden">
-<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNTYxNzI3MzAzDxYCHhNWYWxpZGF0ZVJlcXVlc3RNb2RlAgFkZPGAcCfTeQs6SEOvFfp+GNWM8vDzGR6cMA9ucGaQYmvS" />
-</div>
-
-<div class="aspNetHidden">
-
-    <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="497D9130" />
-</div>
-
-<div id="hd">
-    <div id="mashead" class="gmodule">
-        <div class="mashead-hd">
-            <h1 class="logo">
-                <a class="logo-pic" href="https://www.mingzw.net" target="_self">
-                    <img src="https://www.mingzw.net/skin/mingpic/logo.jpg" alt="明智屋小說網" />
-                </a>
-            </h1>
-        </div>
-        <div class="mashead-bd">
-            <div class="search-form">
-                <div class="ipt-searcharea">
-                    <input id="SearchTxt" class="ipt-search" type="text" name="searchkey" value="首輔嬌娘"
-                        onfocus="if(this.value=='首輔嬌娘') this.value=''" onblur="if(this.value=='') this.value='首輔嬌娘'">
-                </div>
-                <input id="Btn_Search" class="btn-search" onclick="Search('#SearchTxt')" value="小說搜索" type="button" />
-            </div>
-        </div>
-
-        <div class="mashead-ft">
-            <div class="hotlink">
-                <a class="hot-nav sites" href="https://tw.mingzw.net">掃一掃手機版</a>
-                <a id="js-showrecord" class="hot-nav read-his dropdown-toggle" href="#" onclick="return false;">二維碼
-                <span id="js-triangle" class="arrow"></span>
-                </a>
-                <div id="js-showrecord-content" class="dropdown-menu">
-                    <a class="logo-pic" href="https://www.mingzw.net/shouye/sy.html" ><img src="https://www.mingzw.net/mingzw/images/qrcode2.png" style='width:60px;height:60px'/></a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-</div>
-
-<div id="nav-container" class="novel-detail">
-
-    <div id="nav" class="container25 gmodule">
-        <ul class="gclearfix">
-            <li><a href="/" target="_self">首頁</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/玄幻.html">玄幻</a><span class="dot">•</span><a href="/mzwlist/奇幻.html">奇幻</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/武俠.html">武俠</a><span class="dot">•</span><a href="/mzwlist/仙俠.html">仙俠</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/都市.html">都市</a><span class="dot">•</span><a href="/mzwlist/言情.html">言情</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/歷史.html">歷史</a><span class="dot">•</span><a href="/mzwlist/軍事.html">軍事</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/游戲.html">游戲</a><span class="dot">•</span><a href="/mzwlist/競技.html">競技</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/科幻.html">科幻</a><span class="dot">•</span><a href="/mzwlist/靈異.html">靈異</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="https://tw.mingzw.net" title="明智屋 繁體版">繁體版</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="https://www.mingzw.net" title="明智屋 簡體版">簡體版</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/全本.html">完本小說</a></li>
-            <li><span class="delm">|</span></li>
-            <li><a href="/mzwlist/穿越.html">穿越架空</a></li>
-            <li><span class="delm">|</span>
-            <li><a href="/mzwgengxin/mzwnew_1.html" target="_blank">今日更新</a></li>
-            <li><span class="split">|</span>
-            <li><a href="/mzwgxbook/mzwnewbook.html" target="_blank">新小說</a></li>
-        </ul>
-    </div>
-</div>
-
-        <div style="height: 130px; text-align: center">
-            <br />
-            <br />
-            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-            <!-- 728*90圖文新 -->
-            <ins class="adsbygoogle"
-                style="display: inline-block; width: 728px; height: 90px"
-                data-ad-client="ca-pub-3766739193052410"
-                data-ad-slot="1130004885"></ins>
-            <script>
-                (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
-            <br />
-        </div>
-        <div id="hd" class="container25">
-            <div id="hd-bd" class="span25 gmodule">
-                <span>當前位置：</span>
-                <a href="/">明智屋</a><span class="box">&gt;</span><a href="/mzwlist/仙俠.html">
-                    仙俠小說</a><span class="box">&gt;</span><a href="/mzwbook/47453.html">金榜題名時，才發現妻子是三圣母最新章節</a>
-            </div>
-        </div>
-        <div id="bd" class="container25 gmodule">
-            <div id="bd-left" class="span18">
-                <div id="novel-detail" class="gclearfix">
-                    <div class="header">
-                        <i class="status ">完本</i>
-                        <i class="novel-name">《金榜題名時，才發現妻子是三圣母》</i>
-                    </div>
-                    <div class="pic">
-                        <a class="piclink" href="/mzwchapter/47453.html" target="_blank">
-                            <img src="/images/mzwid/47453.jpg" alt="金榜題名時，才發現妻子是三圣母 圖片" />
-                        </a>
-                        <dl class="picinfo gclearfix">
-                            <dt>作者:</dt>
-                            <dd>
-                                <a href="/mzwlist/在下常空軍.html"  target="_blank" >在下常空軍</a></dd>
-                            <dt>繁體:</dt>
-                            <dd><a class="lightblue" href="https://tw.mingzw.net/mzwbook/47453.html" title="明智屋小說繁體中文閱讀">繁體明智屋閱讀</a></dd>
-                            <dt>簡體:</dt>
-                            <dd>
-                                <a class="lightblue" href="https://www.mingzw.net/mzwbook/47453.html" title="明智屋小說簡體中文閱讀">簡體明智屋閱讀</a>
-                            </dd>
-                            <dt>標簽:</dt>
-                            <dd>
-                                <span id="Lab_Keywords">&nbsp;<a href="/mzwlist/仙俠.html" title="小說分類標簽: 仙俠">仙俠</a>&nbsp;|&nbsp;<a href="/mzwlist/修真.html" title="小說分類標簽: 修真">修真</a>&nbsp;|&nbsp;<a href="/mzwlist/修真仙俠.html" title="小說分類標簽: 修真仙俠">修真仙俠</a>&nbsp;</span></dd>
-                        </dl>
-                    </div>
-                    <div class="cont">
-                        <!-- aggregate rating -->
-                        <div class="aggregate-rating">
-                            <span class="rating-site red">
-                                <p class="value">
-                                    閱讀指數：<span style="tab-size: 16">4星
-                                    </span>
-                                </p>
-                            </span>
-                        </div>
-                        <!-- aggregate rating end -->
-                        <div class="desc">
-                            <div class="title">
-                                <span class="titlename">作品介紹:</span>
-                            </div>
-                            <div class="content" style="font-size: 12px; line-height: 20px; overflow-wrap: break-word; table-layout: fixed; word-break: break-all; margin-left: 5px; font-weight: normal; text-indent: 1em;">穿越到古代，陸逸很老實的發揮著自己穿越者的優勢。發奮讀書之余不忘好好掙錢發家，終于抱得美人歸，又逢金榜題名。
-
-    此時，他才知道，自己的妻子竟然是華山三圣母，天庭戰神楊戩之妹！
-
-    .......《金榜題名時，才發現妻子是三圣母》是在下常空軍精心創作的修真仙俠小說。</div>
-                            最新更新是在 <b>2026-07-24</b> 敬請閱讀！
-                            <br />
-                            最后閱讀章節：
-                            <div id="LastView" style="color: #333; margin-bottom: 1px;">
-                                暫無記錄，請先加入書架！
-                            </div>
-                            <p class="bot-border"></p>
-                        </div>
-                        <div class="otherinfo">
-                            <span class="newsection">最新章節: <a href="/mzwread/47453_15612845.html" style="color: orange">第兩百二十章 終點</a></span>
-                            <ul id="share" class="share"></ul>
-                            <span>
-                                <!-- Baidu Button BEGIN -->
-                                <div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare">
-                                    <a class="bds_tsina"></a>
-                                    <a class="bds_qzone"></a>
-                                    <a class="bds_tqq"></a>
-                                    <a class="bds_t163"></a>
-                                    <a class="bds_renren"></a>
-                                    <a class="bds_tieba"></a>
-                                    <a class="bds_qq"></a>
-                                    <span class="bds_more"></span>
-                                    <a class="shareCount"></a>
-                                </div>
-                            </span>
-                            <script type="text/javascript" id="bdshare_js" data="type=tools&amp;mini=1&amp;uid=6680331"></script>
-                            <script type="text/javascript" id="bdshell_js"></script>
-                            <script type="text/javascript">
-                                document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date() / 3600000)
-                            </script>
-                            <!-- Baidu Button END https://tw.mingzw.net -->
-                            <div class="view-btn">
-                                <a href="/mzwchapter/47453.html" title="金榜題名時，才發現妻子是三圣母 在下常空軍 目錄" title="金榜題名時，才發現妻子是三圣母 目錄列表" class="view-all-btn btn-text">查看目錄</a>
-                                <a class="start-view-btn btn-text" href="/mzwread/47453_15612627.html" title="金榜題名時，才發現妻子是三圣母 小說閱讀">開始閱讀</a>
-                                <b id="addbookshelf_0"><a href="javascript:void(0);" id="Btn_AddBookMark" onclick="AddBookMark(47453);" class="view-all-btn btn-text">放入書架</a></b>
-                                <a class="view-all-btn btn-text" href="/mingzw/BookMark.aspx" title="明智屋書架">進入書架</a>
-                                <a class="view-all-btn btn-text" href="/mibook/47453.html" title="金榜題名時，才發現妻子是三圣母 繁體手機版小說閱讀">繁體手機版</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="width: 680px; padding-top: 15px; padding-bottom: 20px;">
-                    <div style="width: 50px; height: 25px"></div>
-                    <div style="float: left; text-align: center;">
-                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-                        <!-- 300*250圖文 -->
-                        <ins class="adsbygoogle"
-                            style="display: inline-block; width: 300px; height: 250px"
-                            data-ad-client="ca-pub-3766739193052410"
-                            data-ad-slot="3917349283"></ins>
-                        <script>
-                                (adsbygoogle = window.adsbygoogle || []).push({});
-                        </script>
-                    </div>
-                    <div style="text-align: right;" id='div-gpt-ad-1567047455516-0'>
-                         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
-                        <!-- 300*250圖文 -->
-                        <ins class="adsbygoogle"
-                            style="display: inline-block; width: 300px; height: 250px"
-                            data-ad-client="ca-pub-3766739193052410"
-                            data-ad-slot="3917349283"></ins>
-                        <script>
-                                (adsbygoogle = window.adsbygoogle || []).push({});
-                        </script>
-                    </div>
-                </div>
-                <div id="Div1" class="section gclearfix">
-                    <div class="wrap">
-                        <div class="novel-top">
-                            <strong class="novel-name">作者作品集：</strong>
-                            <span id="Lab_zuopin">沒有找到此作者的其他作品！</span>
-                        </div>
-                    </div>
-                </div>
-                <div id="section-free" class="section gclearfix">
-                    <div class="wrap">
-                        <div class="novel-top">
-                            <strong class="novel-name">《金榜題名時，才發現妻子是三圣母》</strong>最新章節
-                        </div>
-                        <div class="content gclearfix">
-                            <ul class="gclearfix">
-                                <li><a href="/mzwread/47453_15612845.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百二十章 終點 更新時間:07-24">第兩百二十章 終點</a></li><li><a href="/mzwread/47453_15612844.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十九章 大千世界 更新時間:07-24">第兩百一十九章 大千世界</a></li><li><a href="/mzwread/47453_15612843.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十八章 葫蘆娃闖異界 更新時間:07-24">第兩百一十八章 葫蘆娃闖異界</a></li><li><a href="/mzwread/47453_15612842.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十七章 先天九道 更新時間:07-24">第兩百一十七章 先天九道</a></li><li><a href="/mzwread/47453_15612841.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十六章 大變故 更新時間:07-24">第兩百一十六章 大變故</a></li><li><a href="/mzwread/47453_15612840.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十五章 因果大道 更新時間:07-24">第兩百一十五章 因果大道</a></li><li><a href="/mzwread/47453_15612839.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十四章 擺了一道 更新時間:07-24">第兩百一十四章 擺了一道</a></li><li><a href="/mzwread/47453_15612838.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十三章 戲弄 更新時間:07-24">第兩百一十三章 戲弄</a></li><li><a href="/mzwread/47453_15612837.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十二章 也想要個道侶的熊大 更新時間:07-24">第兩百一十二章 也想要個道侶的熊大</a></li><li><a href="/mzwread/47453_15612836.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十一章 謠言起 更新時間:07-24">第兩百一十一章 謠言起</a></li><li><a href="/mzwread/47453_15612835.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百一十章 一統惡人谷 更新時間:07-24">第兩百一十章 一統惡人谷</a></li><li><a href="/mzwread/47453_15612834.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零九章 搶地盤 更新時間:07-24">第兩百零九章 搶地盤</a></li><li><a href="/mzwread/47453_15612833.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零八章 鴻鈞之死 更新時間:07-24">第兩百零八章 鴻鈞之死</a></li><li><a href="/mzwread/47453_15612832.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零七章 圍攻鴻鈞 更新時間:07-24">第兩百零七章 圍攻鴻鈞</a></li><li><a href="/mzwread/47453_15612831.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零六章 忍辱負重的鴻鈞 更新時間:07-24">第兩百零六章 忍辱負重的鴻鈞</a></li><li><a href="/mzwread/47453_15612830.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零五章 大圣怎么落魄到賣藝了? 更新時間:07-24">第兩百零五章 大圣怎么落魄到賣藝了?</a></li><li><a href="/mzwread/47453_15612829.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零四章 懸賞 更新時間:07-24">第兩百零四章 懸賞</a></li><li><a href="/mzwread/47453_15612828.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零三章 螳螂捕蟬 黃雀在后 更新時間:07-24">第兩百零三章 螳螂捕蟬 黃雀在后</a></li><li><a href="/mzwread/47453_15612827.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零二章 弱肉強食 更新時間:07-24">第兩百零二章 弱肉強食</a></li><li><a href="/mzwread/47453_15612826.html" title="小說名:金榜題名時，才發現妻子是三圣母 作者:在下常空軍 章節名:第兩百零一章 鴻鈞的消息 更新時間:07-24">第兩百零一章 鴻鈞的消息</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div id="view-all">
-
-                    <br />
-                    <br />
-                    <a href="/mzwchapter/47453.html" title="金榜題名時，才發現妻子是三圣母 在下常空軍 目錄" class="view-all-btn view-all-btn-larger" title="金榜題名時，才發現妻子是三圣母最新章節列表"><span class="left"></span>查看所有目錄<span class="right"></span></a>
-                </div>
-                <p class="bot-border search-divider"></p>
-                <div id="section-recommend" class="section">
-                    <div class="wrap">
-                        <div class="novel-top">
-                            <strong class="novel-name">好小說推薦</strong>
-                        </div>
-                        <div class="content gclearfix">
-                             <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/34288.html"  target="_blank" title="杏霖春 坐酌泠泠水" >
- <img src="/images/mzwid/34288.jpg" alt="杏霖春"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">坐酌泠泠水</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/34288.html"  target="_blank" title="杏霖春">杏霖春</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/35363.html"  target="_blank" title="八零小軍妻 趙暖暖" >
- <img src="/images/mzwid/35363.jpg" alt="八零小軍妻"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">趙暖暖</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/35363.html"  target="_blank" title="八零小軍妻">八零小軍妻</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/33975.html"  target="_blank" title="造化之門 鵝是老五" >
- <img src="/images/mzwid/33975.jpg" alt="造化之門"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">鵝是老五</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/33975.html"  target="_blank" title="造化之門">造化之門</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/35400.html"  target="_blank" title="歸朝 姚穎怡" >
- <img src="/images/mzwid/35400.jpg" alt="歸朝"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">姚穎怡</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/35400.html"  target="_blank" title="歸朝">歸朝</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/38381.html"  target="_blank" title="娘娘是個嬌氣包，得寵著！ 玉樓人醉" >
- <img src="/images/mzwid/38381.jpg" alt="娘娘是個嬌氣包，"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">玉樓人醉</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/38381.html"  target="_blank" title="娘娘是個嬌氣包，">娘娘是個嬌氣包，</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/27945.html"  target="_blank" title="世婚 意千重" >
- <img src="/images/mzwid/27945.jpg" alt="世婚"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">意千重</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/27945.html"  target="_blank" title="世婚">世婚</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/35244.html"  target="_blank" title="妾非良女 謝忘川" >
- <img src="/images/mzwid/35244.jpg" alt="妾非良女"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">謝忘川</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/35244.html"  target="_blank" title="妾非良女">妾非良女</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/29582.html"  target="_blank" title="劍道獨神 六道沉淪" >
- <img src="/images/mzwid/29582.jpg" alt="劍道獨神"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">六道沉淪</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/29582.html"  target="_blank" title="劍道獨神">劍道獨神</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/36243.html"  target="_blank" title="重生八零盛世婚寵 顧清渏" >
- <img src="/images/mzwid/36243.jpg" alt="重生八零盛世婚寵"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">顧清渏</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/36243.html"  target="_blank" title="重生八零盛世婚寵">重生八零盛世婚寵</a>
- </div>
- <div class="le-figure" >
- <div class="pic">
-<a href="/mzwbook/35328.html"  target="_blank" title="爆寵毒妻：娘親要翻天 年華" >
- <img src="/images/mzwid/35328.jpg" alt="爆寵毒妻：娘親要"></a>
- <span class="pic-bottom-mask"></span>
- <p class="pic-bottom">
-    <span class="word-count">作者：</span>
-     <em class="novel-status">年華</em>
- </p>
- </a>
- </div>
-  <a class="title" href="/mzwbook/35328.html"  target="_blank" title="爆寵毒妻：娘親要">爆寵毒妻：娘親要</a>
- </div>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="bd-right" class="span7">
-                <div id="rank-list" class="desc-rank">
-                    <div class="le-tabview ">
-                        <div class="hd">
-                            <ul class="le-tabs ">
-                                <li class="active" id="li_week"><a href="javascript:void(0);" onclick="getweekhots()">周排行榜</a><i class="arrow"></i></li>
-                                <li id="li_month"><a href="javascript:void(0);" onclick="getmonthhots()">月排行榜</a><i class="arrow"></i></li>
-                            </ul>
-                        </div>
-                        <div id="js-le-views" class="views">
-                            <div class="view-item" id="weekbook">
-                                <ul>
-                                     <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47085.html" title="笨蛋美人替嫁后被瘋批王爺寵上天">笨蛋美人替嫁后</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46113.html" title="渣爹寵妾滅妻？侯府嫡女宅斗逆襲">渣爹寵妾滅妻？</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47392.html" title="重生之寧為窮人妻">重生之寧為窮人</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47106.html" title="替嫁福妻喜種田">替嫁福妻喜種田</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/都市.html">[都市]</a>
-<a class="title"  target="_blank" href="/mzwbook/47366.html" title="古代地主婆">古代地主婆</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
-<a class="title"  target="_blank" href="/mzwbook/43906.html" title="夜無疆">夜無疆</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47097.html" title="穿荒年，假千金她殺回來了">穿荒年，假千金</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47393.html" title="農門辣妻之癡傻相公追妻忙">農門辣妻之癡傻</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46114.html" title="農門春暖：家有小福妻">農門春暖：家有</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47173.html" title="當家嫡女莫輕薄">當家嫡女莫輕薄</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/40884.html" title="皇叔借點功德，王妃把符畫猛了">皇叔借點功德，</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47444.html" title="世家">世家</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/41704.html" title="穿越妻榮夫貴：絕嗣世子養崽">穿越妻榮夫貴：</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/34352.html" title="花襲">花襲</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/42010.html" title="封總，太太想跟你離婚很久了">封總，太太想跟</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/44970.html" title="錦鯉貴女，流放后種田帶飛全家">錦鯉貴女，流放</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/29298.html" title="萬事如易">萬事如易</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/腹黑.html">[腹黑]</a>
-<a class="title"  target="_blank" href="/mzwbook/32876.html" title="再嫁">再嫁</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47422.html" title="悍女種田：山里漢寵妻成癮">悍女種田：山里</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47402.html" title="重生1972長白山之救贖">重生1972長白山</a>
- </li>
-
-                                </ul>
-                            </div>
-                            <div class="view-item" id="mothbook" style="display: none">
-                                <ul>
-                                     <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47085.html" title="笨蛋美人替嫁后被瘋批王爺寵上天">笨蛋美人替嫁后</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
-<a class="title"  target="_blank" href="/mzwbook/43906.html" title="夜無疆">夜無疆</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47097.html" title="穿荒年，假千金她殺回來了">穿荒年，假千金</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47106.html" title="替嫁福妻喜種田">替嫁福妻喜種田</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/29298.html" title="萬事如易">萬事如易</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/41167.html" title="童養媳之桃李滿天下">童養媳之桃李滿</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47392.html" title="重生之寧為窮人妻">重生之寧為窮人</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46114.html" title="農門春暖：家有小福妻">農門春暖：家有</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46113.html" title="渣爹寵妾滅妻？侯府嫡女宅斗逆襲">渣爹寵妾滅妻？</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47173.html" title="當家嫡女莫輕薄">當家嫡女莫輕薄</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/40884.html" title="皇叔借點功德，王妃把符畫猛了">皇叔借點功德，</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/35666.html" title="九零學霸小軍醫">九零學霸小軍醫</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/34352.html" title="花襲">花襲</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/42010.html" title="封總，太太想跟你離婚很久了">封總，太太想跟</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46520.html" title="第二春">第二春</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/41704.html" title="穿越妻榮夫貴：絕嗣世子養崽">穿越妻榮夫貴：</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/46282.html" title="大理寺卿的寵妻日常">大理寺卿的寵妻</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/古代.html">[古代]</a>
-<a class="title"  target="_blank" href="/mzwbook/32894.html" title="玉堂金閨">玉堂金閨</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/47393.html" title="農門辣妻之癡傻相公追妻忙">農門辣妻之癡傻</a>
- </li>
- <li>
- <span class="desc"></span>
- <a class="type"  target="_blank" href="/mzwlist/都市.html">[都市]</a>
-<a class="title"  target="_blank" href="/mzwbook/47366.html" title="古代地主婆">古代地主婆</a>
- </li>
-
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="game-outlink" class="siderbox">
-                    <a href="https://www.mingzw.net" target="_blank">
-                        <img src="/skin/mingpic/logo.jpg" title="明智屋小說" alt="明智屋小說" /></a>
-                </div>
-                <div id="do-you-like" class="gmodule gclearfix">
-                    <div class="sider-box do-you-like">
-                        <h2>這些小說你喜歡嗎？</h2>
-                         <div class="content gclearfix">
-                            <div class="le-figure">
-                                <div class="pic gclearfix">
-                                    <a href="/mzwbook/41716.html">
-                                        <img src="/images/mzwid/41716.jpg" alt="七零：冷面軍少被作精嬌妻拿捏了 桃三月">
-                                        <span class="pic-bottom-mask"></span>
-                                        <p class="pic-bottom">
-                                            <span class="word-count">作者：</span>
-                                            <em class="novel-status">桃三月</em>
-                                        </p>
-                                    </a>
-                                </div>
-                                <a class="title" href="/mzwbook/41716.html" title="七零：冷面軍少被作精嬌妻拿捏了 桃三月">七零：冷面軍少被作精嬌妻拿捏了</a>
-                            </div>
-                            <div class="le-figure" nid="1301888">
-                                <div class="pic gclearfix">
-                                    <a href="/mzwbook/41705.html">
-                                        <img src="/images/mzwid/41705.jpg" alt="七零：隨軍辣媳帶飛大院暴富逆襲 春光滿園">
-                                        <span class="pic-bottom-mask"></span>
-                                        <p class="pic-bottom">
-                                            <span class="word-count">作者：</span>
-                                            <em class="novel-status">春光滿園</em>
-                                        </p>
-                                    </a>
-                                </div>
-                                <a class="title" href="/mzwbook/41705.html" title="七零：隨軍辣媳帶飛大院暴富逆襲 尋找失落的愛情">七零：隨軍辣媳帶飛大院暴富逆襲</a>
-                            </div>
-                        </div>
-                        <ul class="text-list">
-                             <li>
- <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
-<a class="title"  target="_blank" href="/mzwbook/29582.html" title="劍道獨神">劍道獨神</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/仙俠.html">[仙俠]</a>
-<a class="title"  target="_blank" href="/mzwbook/38008.html" title="成為病弱女修后">成為病弱女修后</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/35400.html" title="歸朝">歸朝</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/科幻.html">[科幻]</a>
-<a class="title"  target="_blank" href="/mzwbook/35292.html" title="星際之女武神">星際之女武神</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/35244.html" title="妾非良女">妾非良女</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/38381.html" title="娘娘是個嬌氣包，得寵著！">娘娘是個嬌氣包</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/35508.html" title="重生家中寶">重生家中寶</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
-<a class="title"  target="_blank" href="/mzwbook/43906.html" title="夜無疆">夜無疆</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a class="title"  target="_blank" href="/mzwbook/38414.html" title="農門春記">農門春記</a>
- </li>
- <li>
- <a class="type"  target="_blank" href="/mzwlist/傲嬌.html">[傲嬌]</a>
-<a class="title"  target="_blank" href="/mzwbook/36295.html" title="大魔王嬌養指南">大魔王嬌養指南</a>
- </li>
-
-                        </ul>
-                    </div>
-                </div>
-                <div id="Div2" class="gmodule gclearfix">
-                    <div class="sider-box do-you-like">
-                        <h2>新入庫小說&nbsp;&nbsp;&nbsp;&nbsp;<a href="/mzwgxbook/mzwnewbook.html" class="more">更多&gt;&gt;</a></h2>
-                        <ul class="text-list">
-                            <li class="item-1">
- <em class="no">1</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47457.html" target="_blank" title="農家貴女">農家貴女</a>
- </li>
-<li class="item-1">
- <em class="no">2</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47456.html" target="_blank" title="狼性總裁，超會寵！">狼性總裁，超會</a>
- </li>
-<li class="item-1">
- <em class="no">3</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47455.html" target="_blank" title="丑顏皇貴妃">丑顏皇貴妃</a>
- </li>
-<li class="item-1">
- <em class="no">4</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47454.html" target="_blank" title="山野逍遙小神醫">山野逍遙小神醫</a>
- </li>
-<li class="item-1">
- <em class="no">5</em>
- <a class="type" target="_blank" href="/mzwlist/仙俠.html">[仙俠]</a>
-<a href="/mzwbook/47453.html" target="_blank" title="金榜題名時，才發現妻子是三圣母">金榜題名時，才</a>
- </li>
-<li class="item-1">
- <em class="no">6</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47452.html" target="_blank" title="校草居然是你前男友">校草居然是你前</a>
- </li>
-<li class="item-1">
- <em class="no">7</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47451.html" target="_blank" title="重生后才發現我有青梅">重生后才發現我</a>
- </li>
-<li class="item-1">
- <em class="no">8</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47450.html" target="_blank" title="我的刺婚時代">我的刺婚時代</a>
- </li>
-<li class="item-1">
- <em class="no">9</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47449.html" target="_blank" title="嫡女為妃：冷情王爺無限寵">嫡女為妃：冷情</a>
- </li>
-<li class="item-1">
- <em class="no">10</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47448.html" target="_blank" title="冷王，醫妃要私奔">冷王，醫妃要私</a>
- </li>
-<li class="item-1">
- <em class="no">11</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47447.html" target="_blank" title="冷王狂寵：嫡女醫妃">冷王狂寵：嫡女</a>
- </li>
-<li class="item-1">
- <em class="no">12</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47446.html" target="_blank" title="誤落龍榻：嫡寵冷妃">誤落龍榻：嫡寵</a>
- </li>
-<li class="item-1">
- <em class="no">13</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47445.html" target="_blank" title="我們相愛吧">我們相愛吧</a>
- </li>
-<li class="item-1">
- <em class="no">14</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47444.html" target="_blank" title="世家">世家</a>
- </li>
-<li class="item-1">
- <em class="no">15</em>
- <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
-<a href="/mzwbook/47443.html" target="_blank" title="甜妻若水">甜妻若水</a>
- </li>
-
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div id="copyright" class="gmodule g-box">
-
-            <div class="copyright-bd">
-                <p>
-                    本站部分作品收集于網絡或網友上傳,僅供讀者學習,版權歸作者或出版社所有，如有不妥，請來信或電話告知,我們會立即刪除，多謝支持與理解！
-                </p>
-                <p>
-                    請所有作者發布作品時務必遵守國家互聯網信息管理辦法規定，我們拒絕任何色情小說，一經發現，即作刪除！
-                </p>
-                <p>
-                    溫馨提示：適度娛樂，合理安排時間，享受快樂生活…… |推薦最火爆小說《<a href="/mzwbook/35493.html">似錦</a>》|《<a href="/mzwbook/35537.html">金玉良醫</a>》|
-                </p>
-                <p>
-                    如果您有任何版權問題,請發送郵件到: mingzwcom@outlook.com
-                </p>
-                <p>
-                    Copyright (C) 2022-2023 明智屋小說網 All Rights Reserved
-                </p>
-            </div>
-        </div>
-    </form>
-</body>
-</html>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>
+        凡人修仙傳最新章節,凡人修仙傳全本在線閱讀-偏方方-明智屋</title>
+    <meta name="Keywords" content="凡人修仙傳,凡人修仙傳最新章節,凡人修仙傳在線閱讀,明智屋" />
+    <meta name="Description" content="明智屋小說網推薦作者忘語的凡人修仙傳最新章節,凡人修仙傳全本免費在線閱讀" />
+    <link href="/mingzw/css/bookcss1.css" rel="stylesheet" type="text/css" />
+    <link href="/mingzw/css/bookcss2.css" rel="stylesheet" type="text/css" />
+    <link href="/mingzw/css/bookcss3.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="/js/jquery.js"></script>
+    <script type="text/javascript" src="/mingzw/register_js/register.js"></script>
+    <script type="text/javascript" src="/mingzw/register_js/js_login.js"></script>
+    <script language="javascript" type="text/javascript" charset="utf-8">
+        $(document).ready(function () {
+            if (top.location != this.location) {
+                top.location = this.location;
+            }
+            document.onkeydown = KeyDown;
+
+            var Referer = document.referrer;
+            $.getScript("/Count.aspx?bookid=17482&hot=5&referer=" + escape(document.referrer));
+        });
+
+        function AddBookMark() {
+            $.getScript("/AddBookMark.aspx?bookid=17482");
+            HideAddBtn();
+        }
+
+        function HideAddBtn() {
+            $("#Btn_AddBookMark").text("已經收藏");
+        }
+
+        function RemoveBookMark() {
+            $.getScript("/RemoveBookMark.aspx?bookid=" + 17482 + "&nojump=1");
+
+            $("#Btn_AddBookMark").show();
+        }
+
+        function ShowLastRead(BookId, ChapterId, ChapterName) {
+            $("#LastView").html(
+                "<a href=\"/mzwread/" + BookId + "_" + ChapterId + ".html\" style=\"color:red;\" >"
+                + ChapterName + "</a>");
+        }
+
+        function KeyDown() {
+            if (event.keyCode == 13) {
+                Search("#SearchTxt");
+                return false;
+            }
+        }
+        function Search(obj) {
+            var keywords = $(obj).val();
+            if (keywords != null || keywords != "") {
+                top.location = "/mzwlist/" + keywords + ".html";
+            }
+            return false;
+        }
+    </script>
+    <script language="javascript" type="text/javascript" charset="utf-8">
+        function post_login() {
+            if (document.getElementById("u_name").value != "" && document.getElementById("u_password").value != "") {
+                var xmlDom;
+                try {
+                    xmlDom = new XMLHttpRequest(); //嘗試創建 XMLHttpRequest 對象。 
+                } catch (E) {
+                    try {
+                        xmlDom = new ActiveXObject("Msxml2.XMLHTTP"); //嘗試使用較新版本的 Microsoft 瀏覽器創建 Microsoft 兼容的對象（Msxml2.XMLHTTP）。 
+                    }
+                    catch (E) {
+                        try {
+                            xmlDom = new ActiveXObject("Microsoft.XMLHTTP"); // 如果失敗（catch (othermicrosoft)）嘗試使用較老版本的 Microsoft 瀏覽器創建 Microsoft 兼容的對象（Microsoft.XMLHTTP）。 
+                        }
+                        catch (E) {
+
+                        }
+                    }
+                }
+
+                xmlDom.onreadystatechange = function () {
+                    if (xmlDom.readyState == 4 && xmlDom.status == 200) {
+                        if (xmlDom.responseText == "no") {
+                            window.location.href = '/mingzw/Register.aspx';
+                        }
+                        else {
+                            alert(xmlDom.responseText);
+                            var arr = xmlDom.responseText.split(")(");
+                            var uid = arr[1];
+                            var wn = uid + "+" + document.getElementById("u_name").value;
+                            setCookie("www.mingzw.com-bookshelf", wn, 365);
+                            document.getElementById("userlogin").innerHTML = "歡迎您： <b style='color:green'>" + document.getElementById("u_name").value + "</b>  ; （您可以進入您的 <a href=\"/mingzw/Bookshelf.aspx\" style=\"color:red;\">書架</a>）   <a href=\"/mingzw/Bookshelf.aspx\" style=\"float: right;color:red;\">我的書架</a>";
+                            //return true;
+                        }
+                    }
+                }
+                var uname = document.getElementById("u_name").value;
+                var upassw = document.getElementById("u_password").value;
+                xmlDom.open("POST", "/mingzw/login.aspx?u_name=" + uname + "&u_password=" + upassw + "&fresh=" + new Date().getTime(), true);
+
+                // xmlDom.open("POST", "login.aspx?u_name=asdf&u_password=1234", true);
+                xmlDom.send();
+            }
+            else {
+                window.location.href = '/mingzw/Register.aspx';
+            }
+        }
+        function setCookie(c_name, value, exdays) {
+            var exdate = new Date();
+            exdate.setDate(exdate.getDate() + exdays);
+            var c_value = escape(value) + ((exdays == null) ? "" : "; expires=" + exdate.toUTCString()) + "; path=/";
+            document.cookie = c_name + "=" + c_value;
+        }
+    </script>
+    <script type="text/javascript">
+        function getweekhots() {
+            document.getElementById("weekbook").style.display = "block";
+            document.getElementById("mothbook").style.display = "none";
+            document.getElementById("li_week").className = "active";
+            document.getElementById("li_month").className = "";
+        }
+        function getmonthhots() {
+            document.getElementById("weekbook").style.display = "none";
+            document.getElementById("mothbook").style.display = "block";
+            document.getElementById("li_week").className = "";
+            document.getElementById("li_month").className = "active";
+        }
+    </script>
+    
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-YXLKZXV6XT"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-YXLKZXV6XT');
+    </script>
+</head>
+<body class="p-index">
+    <form method="post" action="./Book.aspx?bookid=17482" id="form1">
+<div class="aspNetHidden">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUJNTYxNzI3MzAzDxYCHhNWYWxpZGF0ZVJlcXVlc3RNb2RlAgFkZFdv1/DJyrWgWAovtYgLpwxkxUn4keJUajhJB/nSRbKr" />
+</div>
+
+<div class="aspNetHidden">
+
+	<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="497D9130" />
+</div>
+        
+<div id="hd">
+    <div id="mashead" class="gmodule">
+        <div class="mashead-hd">
+            <h1 class="logo">
+                <a class="logo-pic" href="https://www.mingzw.net" target="_self">
+                    <img src="https://www.mingzw.net/skin/mingpic/logo.jpg" alt="明智屋小說網" />
+                </a>
+            </h1>
+        </div>
+        <div class="mashead-bd">
+            <div class="search-form">
+                <div class="ipt-searcharea">
+                    <input id="SearchTxt" class="ipt-search" type="text" name="searchkey" value="首輔嬌娘"
+                        onfocus="if(this.value=='首輔嬌娘') this.value=''" onblur="if(this.value=='') this.value='首輔嬌娘'">
+                </div>
+                <input id="Btn_Search" class="btn-search" onclick="Search('#SearchTxt')" value="小說搜索" type="button" />
+            </div>
+        </div>
+
+        <div class="mashead-ft">
+            <div class="hotlink">
+                <a class="hot-nav sites" href="https://tw.mingzw.net">掃一掃手機版</a>
+                <a id="js-showrecord" class="hot-nav read-his dropdown-toggle" href="#" onclick="return false;">二維碼
+                <span id="js-triangle" class="arrow"></span>
+                </a>
+                <div id="js-showrecord-content" class="dropdown-menu">
+                    <a class="logo-pic" href="https://www.mingzw.net/shouye/sy.html" ><img src="https://www.mingzw.net/mingzw/images/qrcode2.png" style='width:60px;height:60px'/></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="nav-container" class="novel-detail">
+
+    <div id="nav" class="container25 gmodule">
+        <ul class="gclearfix">
+            <li><a href="/" target="_self">首頁</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/玄幻.html">玄幻</a><span class="dot">•</span><a href="/mzwlist/奇幻.html">奇幻</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/武俠.html">武俠</a><span class="dot">•</span><a href="/mzwlist/仙俠.html">仙俠</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/都市.html">都市</a><span class="dot">•</span><a href="/mzwlist/言情.html">言情</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/歷史.html">歷史</a><span class="dot">•</span><a href="/mzwlist/軍事.html">軍事</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/游戲.html">游戲</a><span class="dot">•</span><a href="/mzwlist/競技.html">競技</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/科幻.html">科幻</a><span class="dot">•</span><a href="/mzwlist/靈異.html">靈異</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="https://tw.mingzw.net" title="明智屋 繁體版">繁體版</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="https://www.mingzw.net" title="明智屋 簡體版">簡體版</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/全本.html">完本小說</a></li>
+            <li><span class="delm">|</span></li>
+            <li><a href="/mzwlist/穿越.html">穿越架空</a></li>
+            <li><span class="delm">|</span>
+            <li><a href="/mzwgengxin/mzwnew_1.html" target="_blank">今日更新</a></li>
+            <li><span class="split">|</span>
+            <li><a href="/mzwgxbook/mzwnewbook.html" target="_blank">新小說</a></li>
+        </ul>
+    </div>
+</div>
+
+        <div style="height: 130px; text-align: center">
+            <br />
+            <br />
+            <script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+            <!-- 728*90圖文新 -->
+            <ins class="adsbygoogle"
+                style="display: inline-block; width: 728px; height: 90px"
+                data-ad-client="ca-pub-3766739193052410"
+                data-ad-slot="1130004885"></ins>
+            <script>
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            </script>
+            <br />
+        </div>
+        <div id="hd" class="container25">
+            <div id="hd-bd" class="span25 gmodule">
+                <span>當前位置：</span>
+                <a href="/">明智屋</a><span class="box">&gt;</span><a href="/mzwlist/奇幻.html">
+                    奇幻小說</a><span class="box">&gt;</span><a href="/mzwbook/17482.html">凡人修仙傳最新章節</a>
+            </div>
+        </div>
+        <div id="bd" class="container25 gmodule">
+            <div id="bd-left" class="span18">
+                <div id="novel-detail" class="gclearfix">
+                    <div class="header">
+                        <i class="status ">完本</i>
+                        <i class="novel-name">《凡人修仙傳》</i>
+                    </div>
+                    <div class="pic">
+                        <a class="piclink" href="/mzwchapter/17482.html" target="_blank">
+                            <img src="/images/mzwid/17482.jpg" alt="凡人修仙傳 圖片" />
+                        </a>
+                        <dl class="picinfo gclearfix">
+                            <dt>作者:</dt>
+                            <dd>
+                                <a href="/mzwlist/忘語.html"  target="_blank" >忘語</a></dd>
+                            <dt>繁體:</dt>
+                            <dd><a class="lightblue" href="https://tw.mingzw.net/mzwbook/17482.html" title="明智屋小說繁體中文閱讀">繁體明智屋閱讀</a></dd>
+                            <dt>簡體:</dt>
+                            <dd>
+                                <a class="lightblue" href="https://www.mingzw.net/mzwbook/17482.html" title="明智屋小說簡體中文閱讀">簡體明智屋閱讀</a>
+                            </dd>
+                            <dt>標簽:</dt>
+                            <dd>
+                                <span id="Lab_Keywords">&nbsp;<a href="/mzwlist/奇幻修真.html" title="小說分類標簽: 奇幻修真">奇幻修真</a>&nbsp;|&nbsp;<a href="/mzwlist/奇幻.html" title="小說分類標簽: 奇幻">奇幻</a>&nbsp;|&nbsp;<a href="/mzwlist/仙俠.html" title="小說分類標簽: 仙俠">仙俠</a>&nbsp;</span></dd>
+                        </dl>
+                    </div>
+                    <div class="cont">
+                        <!-- aggregate rating -->
+                        <div class="aggregate-rating">
+                            <span class="rating-site red">
+                                <p class="value">
+                                    閱讀指數：<span style="tab-size: 16">2星
+                                    </span>
+                                </p>
+                            </span>
+                        </div>
+                        <!-- aggregate rating end -->
+                        <div class="desc">
+                            <div class="title">
+                                <span class="titlename">作品介紹:</span>
+                            </div>
+                            <div class="content" style="font-size: 12px; line-height: 20px; overflow-wrap: break-word; table-layout: fixed; word-break: break-all; margin-left: 5px; font-weight: normal; text-indent: 1em;">一個普通的山村窮小子，偶然之下，進入到當地的江湖小門派，成了一名記名弟子。他以這樣的身份，如何在門派中立足？又如何以平庸的資質，進入到修仙者的行列？</div>
+                            最新更新是在 <b>2013-09-24</b> 敬請閱讀！
+                            <br />
+                            最后閱讀章節： 
+                            <div id="LastView" style="color: #333; margin-bottom: 1px;">
+                                暫無記錄，請先加入書架！
+                            </div>
+                            <p class="bot-border"></p>
+                        </div>
+                        <div class="otherinfo">
+                            <span class="newsection">最新章節: <a href="/mzwread/17482_6405354.html" style="color: orange">感言</a></span>
+                            <ul id="share" class="share"></ul>
+                            <span>
+                                <!-- Baidu Button BEGIN -->
+                                <div id="bdshare" class="bdshare_t bds_tools_32 get-codes-bdshare">
+                                    <a class="bds_tsina"></a>
+                                    <a class="bds_qzone"></a>
+                                    <a class="bds_tqq"></a>
+                                    <a class="bds_t163"></a>
+                                    <a class="bds_renren"></a>
+                                    <a class="bds_tieba"></a>
+                                    <a class="bds_qq"></a>
+                                    <span class="bds_more"></span>
+                                    <a class="shareCount"></a>
+                                </div>
+                            </span>
+                            <script type="text/javascript" id="bdshare_js" data="type=tools&amp;mini=1&amp;uid=6680331"></script>
+                            <script type="text/javascript" id="bdshell_js"></script>
+                            <script type="text/javascript">
+                                document.getElementById("bdshell_js").src = "http://bdimg.share.baidu.com/static/js/shell_v2.js?cdnversion=" + Math.ceil(new Date() / 3600000)
+                            </script>
+                            <!-- Baidu Button END https://tw.mingzw.net -->
+                            <div class="view-btn">
+                                <a href="/mzwchapter/17482.html" title="凡人修仙傳 忘語 目錄" title="凡人修仙傳 目錄列表" class="view-all-btn btn-text">查看目錄</a>
+                                <a class="start-view-btn btn-text" href="/mzwread/17482_941273.html" title="凡人修仙傳 小說閱讀">開始閱讀</a>
+                                <b id="addbookshelf_0"><a href="javascript:void(0);" id="Btn_AddBookMark" onclick="AddBookMark(17482);" class="view-all-btn btn-text">放入書架</a></b>
+                                <a class="view-all-btn btn-text" href="/mingzw/BookMark.aspx" title="明智屋書架">進入書架</a>
+                                <a class="view-all-btn btn-text" href="/mibook/17482.html" title="凡人修仙傳 繁體手機版小說閱讀">繁體手機版</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="width: 680px; padding-top: 15px; padding-bottom: 20px;">
+                    <div style="width: 50px; height: 25px"></div>
+                    <div style="float: left; text-align: center;">
+                        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <!-- 300*250圖文 -->
+                        <ins class="adsbygoogle"
+                            style="display: inline-block; width: 300px; height: 250px"
+                            data-ad-client="ca-pub-3766739193052410"
+                            data-ad-slot="3917349283"></ins>
+                        <script>
+                                (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+                    <div style="text-align: right;" id='div-gpt-ad-1567047455516-0'>
+                         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+                        <!-- 300*250圖文 -->
+                        <ins class="adsbygoogle"
+                            style="display: inline-block; width: 300px; height: 250px"
+                            data-ad-client="ca-pub-3766739193052410"
+                            data-ad-slot="3917349283"></ins>
+                        <script>
+                                (adsbygoogle = window.adsbygoogle || []).push({});
+                        </script>
+                    </div>
+                </div>
+                <div id="Div1" class="section gclearfix">
+                    <div class="wrap">
+                        <div class="novel-top">
+                            <strong class="novel-name">作者作品集：</strong>
+                            <span id="Lab_zuopin"><b style="font-weight:bold">忘語</b>的<b style="color: red">其他作品</b>：<a href="/mzwbook/33023.html" title="魔天記" target="_blank" >魔天記</a></span>
+                        </div>
+                    </div>
+                </div>
+                <div id="section-free" class="section gclearfix">
+                    <div class="wrap">
+                        <div class="novel-top">
+                            <strong class="novel-name">《凡人修仙傳》</strong>最新章節
+                        </div>
+                        <div class="content gclearfix">
+                            <ul class="gclearfix">
+                                <li><a href="/mzwread/17482_6405354.html" title="小說名:凡人修仙傳 作者:忘語 章節名:感言 更新時間:09-24">感言</a></li><li><a href="/mzwread/17482_6403810.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十六章 飛升仙界(大結局） 更新時間:09-23">第十一卷 真仙降臨 第兩千四百四十六章 飛升仙界(大結局）</a></li><li><a href="/mzwread/17482_6399492.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十五章 飛升之劫 更新時間:09-21">第十一卷 真仙降臨 第兩千四百四十五章 飛升之劫</a></li><li><a href="/mzwread/17482_6394989.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十四章 北極元晶(祝各位書友，中秋快樂） 更新時間:09-20">第十一卷 真仙降臨 第兩千四百四十四章 北極元晶(祝各位書友，中秋快樂）</a></li><li><a href="/mzwread/17482_6389263.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十三章 人界眾象 更新時間:09-17">第十一卷 真仙降臨 第兩千四百四十三章 人界眾象</a></li><li><a href="/mzwread/17482_6384953.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十二章 重回人界 更新時間:09-15">第十一卷 真仙降臨 第兩千四百四十二章 重回人界</a></li><li><a href="/mzwread/17482_6380626.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十一章 人族之變 更新時間:09-14">第十一卷 真仙降臨 第兩千四百四十一章 人族之變</a></li><li><a href="/mzwread/17482_6374502.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百四十章 得果 更新時間:09-11">第十一卷 真仙降臨 第兩千四百四十章 得果</a></li><li><a href="/mzwread/17482_6369714.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十九章 交易、大會 更新時間:09-09">第十一卷 真仙降臨 第兩千四百三十九章 交易、大會</a></li><li><a href="/mzwread/17482_6362923.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十八章 收獲 更新時間:09-07">第十一卷 真仙降臨 第兩千四百三十八章 收獲</a></li><li><a href="/mzwread/17482_6358495.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十七章 龍島 更新時間:09-05">第十一卷 真仙降臨 第兩千四百三十七章 龍島</a></li><li><a href="/mzwread/17482_6342699.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十六章 龍島使者 更新時間:09-03">第十一卷 真仙降臨 第兩千四百三十六章 龍島使者</a></li><li><a href="/mzwread/17482_6337736.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十五章 瓶靈回歸 更新時間:09-01">第十一卷 真仙降臨 第兩千四百三十五章 瓶靈回歸</a></li><li><a href="/mzwread/17482_6332073.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十四章 再回魔源 更新時間:08-30">第十一卷 真仙降臨 第兩千四百三十四章 再回魔源</a></li><li><a href="/mzwread/17482_6325055.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十三章 下落 更新時間:08-28">第十一卷 真仙降臨 第兩千四百三十三章 下落</a></li><li><a href="/mzwread/17482_6319244.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十二章  再見靈王 更新時間:08-26">第十一卷 真仙降臨 第兩千四百三十二章  再見靈王</a></li><li><a href="/mzwread/17482_6306854.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十一章 第一大乘 更新時間:08-24">第十一卷 真仙降臨 第兩千四百三十一章 第一大乘</a></li><li><a href="/mzwread/17482_6295446.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百三十章 本命牌 更新時間:08-22">第十一卷 真仙降臨 第兩千四百三十章 本命牌</a></li><li><a href="/mzwread/17482_6289529.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨 第兩千四百二十九章 天魔契約 更新時間:08-20">第十一卷 真仙降臨 第兩千四百二十九章 天魔契約</a></li><li><a href="/mzwread/17482_6284913.html" title="小說名:凡人修仙傳 作者:忘語 章節名:第十一卷 真仙降臨  第兩千四百二十八章 斬仙（下） 更新時間:08-18">第十一卷 真仙降臨  第兩千四百二十八章 斬仙（下）</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div id="view-all">
+                  
+                    <br />
+                    <br />
+                    <a href="/mzwchapter/17482.html" title="凡人修仙傳 忘語 目錄" class="view-all-btn view-all-btn-larger" title="凡人修仙傳最新章節列表"><span class="left"></span>查看所有目錄<span class="right"></span></a>
+                </div>
+                <p class="bot-border search-divider"></p>
+                <div id="section-recommend" class="section">
+                    <div class="wrap">
+                        <div class="novel-top">
+                            <strong class="novel-name">好小說推薦</strong>
+                        </div>
+                        <div class="content gclearfix">
+                             <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/42010.html"  target="_blank" title="封總，太太想跟你離婚很久了 云中覓" >
+ <img src="/images/mzwid/42010.jpg" alt="封總，太太想跟你"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">云中覓</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/42010.html"  target="_blank" title="封總，太太想跟你">封總，太太想跟你</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/10997.html"  target="_blank" title="御夫手冊 醉酒香" >
+ <img src="http://www.mingzw.net/images/mzwid/10997.jpg" alt="御夫手冊"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">醉酒香</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/10997.html"  target="_blank" title="御夫手冊">御夫手冊</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/36960.html"  target="_blank" title="山河盛宴 天下歸元" >
+ <img src="/images/mzwid/36960.jpg" alt="山河盛宴"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">天下歸元</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/36960.html"  target="_blank" title="山河盛宴">山河盛宴</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/39447.html"  target="_blank" title="海盜王權 北海牧鯨" >
+ <img src="/images/mzwid/39447.jpg" alt="海盜王權"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">北海牧鯨</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/39447.html"  target="_blank" title="海盜王權">海盜王權</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/7353.html"  target="_blank" title="抗日之英雄莫問出處 攬嫦娥射日" >
+ <img src="http://www.mingzw.net/images/mzwid/7353.jpg" alt="抗日之英雄莫問出"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">攬嫦娥射日</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/7353.html"  target="_blank" title="抗日之英雄莫問出">抗日之英雄莫問出</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/32876.html"  target="_blank" title="再嫁 天然宅" >
+ <img src="/images/mzwid/32876.jpg" alt="再嫁"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">天然宅</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/32876.html"  target="_blank" title="再嫁">再嫁</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/34161.html"  target="_blank" title="味香農家 媚眼空空" >
+ <img src="/images/mzwid/34161.jpg" alt="味香農家"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">媚眼空空</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/34161.html"  target="_blank" title="味香農家">味香農家</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/38300.html"  target="_blank" title="女主光環被奪之后我重生了 簫九六" >
+ <img src="/images/mzwid/38300.jpg" alt="女主光環被奪之后"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">簫九六</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/38300.html"  target="_blank" title="女主光環被奪之后">女主光環被奪之后</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/46872.html"  target="_blank" title="七零白富美下鄉抱上最野糙漢大腿 臉崽" >
+ <img src="/images/mzwid/46872.jpg" alt="七零白富美下鄉抱"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">臉崽</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/46872.html"  target="_blank" title="七零白富美下鄉抱">七零白富美下鄉抱</a>
+ </div>
+ <div class="le-figure" >
+ <div class="pic">
+<a href="/mzwbook/47154.html"  target="_blank" title="農女巧當家 舒薪" >
+ <img src="/images/mzwid/47154.jpg" alt="農女巧當家"></a>
+ <span class="pic-bottom-mask"></span>
+ <p class="pic-bottom">
+    <span class="word-count">作者：</span>
+     <em class="novel-status">舒薪</em>
+ </p>
+ </a>
+ </div>
+  <a class="title" href="/mzwbook/47154.html"  target="_blank" title="農女巧當家">農女巧當家</a>
+ </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="bd-right" class="span7">
+                <div id="rank-list" class="desc-rank">
+                    <div class="le-tabview ">
+                        <div class="hd">
+                            <ul class="le-tabs ">
+                                <li class="active" id="li_week"><a href="javascript:void(0);" onclick="getweekhots()">周排行榜</a><i class="arrow"></i></li>
+                                <li id="li_month"><a href="javascript:void(0);" onclick="getmonthhots()">月排行榜</a><i class="arrow"></i></li>
+                            </ul>
+                        </div>
+                        <div id="js-le-views" class="views">
+                            <div class="view-item" id="weekbook">
+                                <ul>
+                                     <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47444.html" title="世家">世家</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47640.html" title="錦繡醫妃之庶女凰途">錦繡醫妃之庶女</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/38300.html" title="女主光環被奪之后我重生了">女主光環被奪之</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47469.html" title="休夫">休夫</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47729.html" title="重生八零幸福生活">重生八零幸福生</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/34403.html" title="江南春">江南春</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
+<a class="title"  target="_blank" href="/mzwbook/41781.html" title="無敵天命">無敵天命</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
+<a class="title"  target="_blank" href="/mzwbook/43906.html" title="夜無疆">夜無疆</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/38913.html" title="嫁權宦">嫁權宦</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47097.html" title="穿荒年，假千金她殺回來了">穿荒年，假千金</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47707.html" title="重生軍少辣嬌妻">重生軍少辣嬌妻</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47402.html" title="重生1972長白山之救贖">重生1972長白山</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/46282.html" title="大理寺卿的寵妻日常">大理寺卿的寵妻</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/42010.html" title="封總，太太想跟你離婚很久了">封總，太太想跟</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47641.html" title="庶女本色">庶女本色</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/免費.html">[免費]</a>
+<a class="title"  target="_blank" href="/mzwbook/42404.html" title="如意姑娘的茍且日常">如意姑娘的茍且</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47719.html" title="錦繡農家">錦繡農家</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47224.html" title="重生空間之完美軍嫂">重生空間之完美</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47258.html" title="帶著空間在五十年代">帶著空間在五十</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/仙俠.html">[仙俠]</a>
+<a class="title"  target="_blank" href="/mzwbook/43561.html" title="聚寶仙盆">聚寶仙盆</a>
+ </li>
+
+                                </ul>
+                            </div>
+                            <div class="view-item" id="mothbook" style="display: none">
+                                <ul>
+                                     <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47444.html" title="世家">世家</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47682.html" title="懷了錦鯉雙胎后，我種田暴富">懷了錦鯉雙胎后</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47640.html" title="錦繡醫妃之庶女凰途">錦繡醫妃之庶女</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/38300.html" title="女主光環被奪之后我重生了">女主光環被奪之</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/34403.html" title="江南春">江南春</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/42010.html" title="封總，太太想跟你離婚很久了">封總，太太想跟</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47707.html" title="重生軍少辣嬌妻">重生軍少辣嬌妻</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/玄幻.html">[玄幻]</a>
+<a class="title"  target="_blank" href="/mzwbook/43906.html" title="夜無疆">夜無疆</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47258.html" title="帶著空間在五十年代">帶著空間在五十</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/腹黑.html">[腹黑]</a>
+<a class="title"  target="_blank" href="/mzwbook/32876.html" title="再嫁">再嫁</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47641.html" title="庶女本色">庶女本色</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47719.html" title="錦繡農家">錦繡農家</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47676.html" title="姝色錦嫁">姝色錦嫁</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47402.html" title="重生1972長白山之救贖">重生1972長白山</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47582.html" title="侯府真千金是戲精">侯府真千金是戲</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/40884.html" title="皇叔借點功德，王妃把符畫猛了">皇叔借點功德，</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47457.html" title="農家貴女">農家貴女</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47224.html" title="重生空間之完美軍嫂">重生空間之完美</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/47686.html" title="流放前，醫妃搬空王府反手嫁男主他叔">流放前，醫妃搬</a>
+ </li>
+ <li>
+ <span class="desc"></span>
+ <a class="type"  target="_blank" href="/mzwlist/靈異.html">[靈異]</a>
+<a class="title"  target="_blank" href="/mzwbook/25856.html" title="花開春暖">花開春暖</a>
+ </li>
+
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="game-outlink" class="siderbox">
+                    <a href="https://www.mingzw.net" target="_blank">
+                        <img src="/skin/mingpic/logo.jpg" title="明智屋小說" alt="明智屋小說" /></a>
+                </div>
+                <div id="do-you-like" class="gmodule gclearfix">
+                    <div class="sider-box do-you-like">
+                        <h2>這些小說你喜歡嗎？</h2>
+                        <div class="content gclearfix">
+                            <div class="le-figure">
+                                <div class="pic gclearfix">
+                                    <a href="/mzwbook/41716.html">
+                                        <img src="/images/mzwid/41716.jpg" alt="七零：冷面軍少被作精嬌妻拿捏了 桃三月">
+                                        <span class="pic-bottom-mask"></span>
+                                        <p class="pic-bottom">
+                                            <span class="word-count">作者：</span>
+                                            <em class="novel-status">桃三月</em>
+                                        </p>
+                                    </a>
+                                </div>
+                                <a class="title" href="/mzwbook/41716.html" title="七零：冷面軍少被作精嬌妻拿捏了 桃三月">七零：冷面軍少被作精嬌妻拿捏了</a>
+                            </div>
+                            <div class="le-figure" nid="1301888">
+                                <div class="pic gclearfix">
+                                    <a href="/mzwbook/41705.html">
+                                        <img src="/images/mzwid/41705.jpg" alt="七零：隨軍辣媳帶飛大院暴富逆襲 春光滿園">
+                                        <span class="pic-bottom-mask"></span>
+                                        <p class="pic-bottom">
+                                            <span class="word-count">作者：</span>
+                                            <em class="novel-status">春光滿園</em>
+                                        </p>
+                                    </a>
+                                </div>
+                                <a class="title" href="/mzwbook/41705.html" title="七零：隨軍辣媳帶飛大院暴富逆襲 尋找失落的愛情">七零：隨軍辣媳帶飛大院暴富逆襲</a>
+                            </div>
+                        </div>
+                        <ul class="text-list">
+                             <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/35927.html" title="你在萬丈榮光中">你在萬丈榮光中</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/42010.html" title="封總，太太想跟你離婚很久了">封總，太太想跟</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/36960.html" title="山河盛宴">山河盛宴</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/腹黑.html">[腹黑]</a>
+<a class="title"  target="_blank" href="/mzwbook/32876.html" title="再嫁">再嫁</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/古代.html">[古代]</a>
+<a class="title"  target="_blank" href="/mzwbook/10997.html" title="御夫手冊">御夫手冊</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/37558.html" title="厲少的小祖宗甜又野">厲少的小祖宗甜</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/軍事.html">[軍事]</a>
+<a class="title"  target="_blank" href="/mzwbook/7353.html" title="抗日之英雄莫問出處">抗日之英雄莫問</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/平凡.html">[平凡]</a>
+<a class="title"  target="_blank" href="/mzwbook/8643.html" title="平凡的清穿日子">平凡的清穿日子</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/35352.html" title="醫品貴女">醫品貴女</a>
+ </li>
+ <li>
+ <a class="type"  target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a class="title"  target="_blank" href="/mzwbook/38300.html" title="女主光環被奪之后我重生了">女主光環被奪之</a>
+ </li>
+
+                        </ul>
+                    </div>
+                </div>
+                <div id="Div2" class="gmodule gclearfix">
+                    <div class="sider-box do-you-like">
+                        <h2>新入庫小說&nbsp;&nbsp;&nbsp;&nbsp;<a href="/mzwgxbook/mzwnewbook.html" class="more">更多&gt;&gt;</a></h2>
+                        <ul class="text-list">
+                            <li class="item-1">
+ <em class="no">1</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47791.html" target="_blank" title="萬物可愛，你也是">萬物可愛，你也</a>
+ </li>
+<li class="item-1">
+ <em class="no">2</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47790.html" target="_blank" title="驚！小作精在極限綜藝靠作死爆紅">驚！小作精在極</a>
+ </li>
+<li class="item-1">
+ <em class="no">3</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47789.html" target="_blank" title="我靠傳播非遺爆紅全宇宙">我靠傳播非遺爆</a>
+ </li>
+<li class="item-1">
+ <em class="no">4</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47788.html" target="_blank" title="世子纏婚：寵妃有喜啦">世子纏婚：寵妃</a>
+ </li>
+<li class="item-1">
+ <em class="no">5</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47787.html" target="_blank" title="公公有孕：太子，奴才不嫁">公公有孕：太子</a>
+ </li>
+<li class="item-1">
+ <em class="no">6</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47786.html" target="_blank" title="炮灰她不想作死">炮灰她不想作死</a>
+ </li>
+<li class="item-1">
+ <em class="no">7</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47785.html" target="_blank" title="親愛的，我不嫁給你">親愛的，我不嫁</a>
+ </li>
+<li class="item-1">
+ <em class="no">8</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47784.html" target="_blank" title="替嫁新娘：南先生，請接招">替嫁新娘：南先</a>
+ </li>
+<li class="item-1">
+ <em class="no">9</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47783.html" target="_blank" title="開局就是神獸">開局就是神獸</a>
+ </li>
+<li class="item-1">
+ <em class="no">10</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47782.html" target="_blank" title="星際之廚神她可鹽可甜">星際之廚神她可</a>
+ </li>
+<li class="item-1">
+ <em class="no">11</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47781.html" target="_blank" title="穿成大佬的掌心寵">穿成大佬的掌心</a>
+ </li>
+<li class="item-1">
+ <em class="no">12</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47780.html" target="_blank" title="全能大佬又奶又兇">全能大佬又奶又</a>
+ </li>
+<li class="item-1">
+ <em class="no">13</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47779.html" target="_blank" title="道長，你又兇我">道長，你又兇我</a>
+ </li>
+<li class="item-1">
+ <em class="no">14</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47778.html" target="_blank" title="甜蜜軍婚，兵王的黑客小嬌妻">甜蜜軍婚，兵王</a>
+ </li>
+<li class="item-1">
+ <em class="no">15</em>
+ <a class="type" target="_blank" href="/mzwlist/言情.html">[言情]</a>
+<a href="/mzwbook/47777.html" target="_blank" title="寵溺至上：帝少嬌妻寵上天">寵溺至上：帝少</a>
+ </li>
+
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="copyright" class="gmodule g-box">
+             
+            <div class="copyright-bd">
+                <p>
+                    本站部分作品收集于網絡或網友上傳,僅供讀者學習,版權歸作者或出版社所有，如有不妥，請來信或電話告知,我們會立即刪除，多謝支持與理解！
+                </p>
+                <p>
+                    請所有作者發布作品時務必遵守國家互聯網信息管理辦法規定，我們拒絕任何色情小說，一經發現，即作刪除！
+                </p>
+                <p>
+                    溫馨提示：適度娛樂，合理安排時間，享受快樂生活…… |推薦最火爆小說《<a href="/mzwbook/35493.html">似錦</a>》|《<a href="/mzwbook/35537.html">金玉良醫</a>》|
+                </p>
+                <p>
+                    如果您有任何版權問題,請發送郵件到: mingzwcom@outlook.com
+                </p>
+                <p>
+                    Copyright (C) 2022-2023 明智屋小說網 All Rights Reserved
+                </p>
+            </div>
+        </div>
+    </form>
+</body>
+</html>

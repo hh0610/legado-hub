@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: biquge365_net
 name: 笔趣阁365
 author: Yunwei
-version: 0.1.2
+version: 0.1.3
 type: source
 domains:
   - m.biquge365.net
@@ -20,8 +20,8 @@ auth:
 content:
   access: free
 proxy:
-  mode: auto
-  required: false
+  mode: always
+  required: true
 enabled: true
 rateLimit:
   perHostConcurrency: 6
@@ -30,6 +30,7 @@ tags:
   - html
   - no-login
   - so-novel-seed
+  - proxy
 domainProfiles:
   - id: mobile
     baseUrl: https://m.biquge365.net

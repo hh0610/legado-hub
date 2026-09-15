@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: mingzw_tw
 name: 明智屋
 author: Yunwei
-version: 0.1.1
+version: 0.1.2
 type: source
 domains:
   - tw.mingzw.net
@@ -23,10 +23,14 @@ auth:
   cookieDomains: []
 content:
   access: free
+proxy:
+  mode: always
+  required: true
 tags:
   - html
   - no-login
   - traditional-chinese
+  - proxy
 sourceSeed:
   type: live
   upstreamId: mingzw_tw

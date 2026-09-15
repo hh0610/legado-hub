@@ -2,7 +2,7 @@ contractVersion: "1.0"
 id: 96dushu_com
 name: 96读书
 author: Yunwei
-version: 0.1.5
+version: 0.1.6
 type: source
 domains:
   - 96dushu.com
@@ -18,8 +18,8 @@ rateLimit:
   perHostConcurrency: 3
   minIntervalMs: 900
 proxy:
-  mode: auto
-  required: false
+  mode: always
+  required: true
 browser:
   mode: optional
   reason: cloudflare_challenge
@@ -34,6 +34,7 @@ tags:
   - cloudflare
   - js_encrypted
   - search_provider
+  - proxy
 accessStrategy:
   search: search_provider
 searchProvider:
