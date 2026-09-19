@@ -1,0 +1,45 @@
+contractVersion: "1.0"
+id: yeban360_com
+name: 夜伴书屋
+author: Yunwei
+version: 0.1.1
+priority: 40
+type: source
+domains:
+  - www.yeban360.com
+baseUrls:
+  - https://www.yeban360.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+enabled: true
+rateLimit:
+  perHostConcurrency: 6
+  minIntervalMs: 1200
+auth:
+  mode: none
+  cookieDomains: []
+content:
+  access: free
+proxy:
+  mode: always
+  required: true
+browser:
+  mode: none
+accessStrategy:
+  search: http
+  detail: http
+  toc: http
+  chapter: http
+tags:
+  - html
+  - no-login
+  - simplified-chinese
+  - proxy
+sourceSeed:
+  type: live
+  upstreamId: yeban360_com
+  upstreamFile: ""
+  upstreamCommit: ""

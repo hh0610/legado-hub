@@ -1,0 +1,48 @@
+contractVersion: "1.0"
+id: zhswx_tw
+name: 宙斯小说网
+author: Yunwei
+version: 0.1.2
+priority: 40
+type: source
+domains:
+  - tw.zhswx.com
+baseUrls:
+  - https://tw.zhswx.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+enabled: true
+rateLimit:
+  perHostConcurrency: 6
+  minIntervalMs: 700
+auth:
+  mode: none
+  cookieDomains: []
+content:
+  access: free
+proxy:
+  mode: always
+  required: true
+browser:
+  mode: required
+  reason: fingerprint_gated_html
+accessStrategy:
+  search: headless_browser
+  detail: headless_browser
+  toc: headless_browser
+  chapter: headless_browser
+tags:
+  - html
+  - no-login
+  - traditional-chinese
+  - cloudflare
+  - proxy
+  - browser
+sourceSeed:
+  type: live
+  upstreamId: zhswx_tw
+  upstreamFile: ""
+  upstreamCommit: ""

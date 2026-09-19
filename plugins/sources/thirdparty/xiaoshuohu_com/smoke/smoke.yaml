@@ -1,0 +1,34 @@
+keyword: 凡人修仙传
+fixtures:
+  search:
+    url: https://www.bing.com/search?q=site%3Awww.xiaoshuohu.com%2F+%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E4%BC%A0
+    file: search.html
+  detail:
+    url: https://www.xiaoshuohu.com/94888/94888537/
+    file: detail.html
+  toc:
+    url: https://www.xiaoshuohu.com/94888/94888537/
+    file: toc.html
+  chapter:
+    url: https://www.xiaoshuohu.com/94888/94888537/1.html
+    file: chapter.html
+searchProviderHits:
+  - title: 凡人修仙传
+    url: https://www.xiaoshuohu.com/94888/94888537/
+    provider: bing_html
+    rank: 1
+    snippet: 凡人修仙传
+    matched_pattern: /\d+/\d+/?$
+expect:
+  search:
+    minResults: 1
+  detail:
+    name: 凡人修仙传
+    author: 忘语
+    hasTocUrl: true
+  toc:
+    minChapters: 1
+    firstTitleContains: "第"
+  chapter:
+    minContentLength: 20
+    titleContains: "第"
