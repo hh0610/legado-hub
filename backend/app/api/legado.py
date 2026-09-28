@@ -31,6 +31,66 @@ from app.core.public_security import get_public_base_url
 from app.services.reading_limits import reading_access_limiter
 
 router = APIRouter(prefix="/api/legado")
+
+# --- Fanqie HEIC/avatar image proxy (read-only whitelist, decodes heic->jpeg) ---
+import io as _io
+import httpx as _httpx
+from fastapi.responses import StreamingResponse as _StreamingResponse
+_IMAGE_PROXY_ALLOWED_HOSTS = ("fqnovelpic.com", "byteimg.com", "bytedance.net", "douyinpic.com")
+_IMAGE_PROXY_MAX_BYTES = 10 * 1024 * 1024
+_HEIF_AVAILABLE = False
+try:
+    import pillow_heif as _pillow_heif
+    _pillow_heif.register_heif_opener()
+    _HEIF_AVAILABLE = True
+except Exception:
+    _HEIF_AVAILABLE = False
+
+
+@router.get("/image-proxy")
+async def image_proxy(url: str):
+    from PIL import Image as _Image
+    raw = (url or "").strip()
+    if not raw or len(raw) > 2048:
+        raise HTTPException(400, "url 无效")
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        raise HTTPException(400, "url 无效")
+    host = (parsed.hostname or "").lower().rstrip(".")
+    if not parsed.hostname or parsed.username or parsed.password:
+        raise HTTPException(400, "url 无效")
+    if not any(host == d or host.endswith(f".{d}") for d in _IMAGE_PROXY_ALLOWED_HOSTS):
+        raise HTTPException(403, "域名不在白名单")
+    if parsed.scheme == "http":
+        raw = "https://" + raw[len("http://"):]
+    elif parsed.scheme != "https":
+        raise HTTPException(400, "仅支持 https")
+    async with _httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        try:
+            resp = await client.get(raw, headers={"User-Agent": "Mozilla/5.0"})
+        except _httpx.HTTPError as exc:
+            raise HTTPException(502, "CDN 获取失败") from exc
+        if resp.status_code != 200:
+            raise HTTPException(502, f"CDN 返回 {resp.status_code}")
+        content_type = resp.headers.get("content-type", "").lower()
+        content = resp.content
+        if len(content) > _IMAGE_PROXY_MAX_BYTES:
+            raise HTTPException(400, "图片过大")
+        if ("heic" in content_type or "heif" in content_type) and _HEIF_AVAILABLE:
+            try:
+                img = _Image.open(_io.BytesIO(content))
+                if img.mode in ("RGBA", "LA", "P"):
+                    img = img.convert("RGB")
+                out = _io.BytesIO()
+                img.save(out, format="JPEG", quality=85, optimize=True)
+                content = out.getvalue()
+                content_type = "image/jpeg"
+            except Exception as exc:
+                logger.warning("image-proxy heic decode failed (host=%s): %s", host, exc)
+        return _StreamingResponse(_io.BytesIO(content), media_type=content_type or "image/jpeg",
+            headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
+
 logger = logging.getLogger(__name__)
 _EXTERNAL_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+:[A-Za-z0-9_-]+$")
 _MAX_EXTERNAL_ID_LENGTH = 8192
