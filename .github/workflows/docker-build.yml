@@ -124,3 +124,22 @@ jobs:
         run: |
           echo "${{ env.DOCKER_IMAGE }}@${{ steps.push.outputs.digest }}"
           echo "tags=${{ steps.meta.outputs.tags }}"
+
+      # 导出离线镜像包（amd64 / arm64），供群晖或内网机器 `docker load` 离线部署。
+      # 复用 gha 缓存，单平台 load 构建会命中前面多平台构建的层，额外耗时很小。
+      - name: Export offline image tars
+        if: github.event_name != 'pull_request'
+        run: |
+          mkdir -p offline
+          for arch in amd64 arm64; do
+            docker buildx build --platform linux/$arch --cache-from type=gha --load -t legado-hub:offline-$arch .
+            docker save legado-hub:offline-$arch -o offline/legado-hub-linux-$arch.tar
+          done
+          ls -lh offline/
+      - name: Upload offline image artifacts
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: legado-hub-offline-images
+          path: offline/
+          retention-days: 14
