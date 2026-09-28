@@ -1,0 +1,49 @@
+contractVersion: "1.0"
+id: shumilou_co
+name: 书迷楼
+author: Yunwei
+version: 0.1.2
+type: source
+domains:
+  - www.shumilou.co
+  - shumilou.co
+baseUrls:
+  - https://www.shumilou.co
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+enabled: true
+rateLimit:
+  perHostConcurrency: 3
+  minIntervalMs: 1200
+auth:
+  mode: none
+  cookieDomains: []
+content:
+  access: free
+proxy:
+  mode: always
+  required: true
+browser:
+  mode: required
+  reason: cloudflare_challenge
+accessStrategy:
+  search: headless_browser
+  detail: headless_browser
+  toc: headless_browser
+  chapter: headless_browser
+tags:
+  - html
+  - no-login
+  - paginated-catalog
+  - paginated-chapter
+  - cloudflare
+  - proxy
+  - browser
+sourceSeed:
+  type: live
+  upstreamId: shumilou_co
+  upstreamFile: ""
+  upstreamCommit: ""

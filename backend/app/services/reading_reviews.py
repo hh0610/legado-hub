@@ -19,8 +19,22 @@ REVIEW_IMAGE_HOST_SUFFIXES = (
     "qpic.cn",
     "myqcloud.com",
     "yuewen.com",
+    "fqnovelpic.com",
+    "byteimg.com",
+    "bytedance.net",
+    "douyinpic.com",
 )
 _INLINE_EMOTICON_RE = re.compile(r"\[fn=(\d+)\]")
+_FANQIE_EMOTICON_MAP = {
+    "偷笑": "🤭", "吃瓜": "🍉", "大笑": "😄", "笑哭": "😂", "笑": "😄", "哭": "😭",
+    "害羞": "😳", "捂脸": "🤦", "酷": "😎", "爱慕": "😍", "飞吻": "😘", "赞": "👍",
+    "送心": "💖", "石化": "🗿", "惊呆": "😱", "恐惧": "😨", "怒": "😡", "尬笑": "😅",
+    "微笑": "😊", "快哭了": "😢", "奸笑": "😏", "思考": "🤔", "探究": "🔍", "盯": "👀",
+    "学会了": "💡", "求爆更": "📢", "注意": "⚠️",
+}
+_FANQIE_EMOTICON_RE = re.compile(r"\[([^\]]{1,12})\]")
+_FANQIE_SKIP_PREFIXES = ("#",)
+_FANQIE_SKIP_WORDS = {"人名", "什么", "秦天", "姜月初"}
 
 
 class ChapterReviewCache:
@@ -85,10 +99,19 @@ def _count_label(value: Any) -> str:
 
 
 def _safe_review_image_url(value: Any) -> str:
-    """Allow only confirmed HTTPS Qidian/Yuewen image CDN hosts."""
+    """HTTPS-only image CDN whitelist; http->https, heic handling, signed heic via proxy."""
     candidate = str(value or "").strip()
     if candidate.startswith("//"):
         candidate = f"https:{candidate}"
+    if candidate.startswith("http://"):
+        candidate = "https://" + candidate[len("http://"):]
+    path, sep, query = candidate.partition("?")
+    has_sig = any(k in query.lower() for k in ("lk3s", "x-signature", "x-orig-a", "x-expires", "rk3s"))
+    if has_sig and "fqnovelpic" in candidate.lower() and path.lower().endswith(".heic"):
+        from urllib.parse import quote
+        return f"/api/legado/image-proxy?url={quote(candidate, safe='')}"
+    if path.lower().endswith(".heic") and not has_sig:
+        candidate = path[:-len(".heic")] + ".jpeg" + (sep + query if sep else "")
     if not candidate or len(candidate) > 2048:
         return ""
     try:
@@ -115,7 +138,7 @@ def _review_avatar(review: dict[str, Any], *, author: bool = False, compact: boo
         classes.append("author")
     if compact:
         classes.append("compact")
-    avatar = _safe_review_image_url(review.get("avatar") or review.get("headImageUrl"))
+    avatar = _safe_review_image_url(review.get("avatar") or review.get("avatarUrl") or review.get("userAvatar") or review.get("headImageUrl"))
     frame = _safe_review_image_url(review.get("avatarFrame"))
     photo = (
         f'<img class="avatar-photo" src="{html.escape(avatar, quote=True)}" alt="" '
@@ -227,9 +250,19 @@ def _review_content(value: Any) -> str:
             f'title="起点表情 {icon_id}">表情</span>'
         )
 
+    def render_fanqie(match: re.Match[str]) -> str:
+        name = match.group(1)
+        if name.startswith(_FANQIE_SKIP_PREFIXES) or name in _FANQIE_SKIP_WORDS:
+            return match.group(0)
+        emoji = _FANQIE_EMOTICON_MAP.get(name)
+        if emoji:
+            return f'<span class="comment-emoji" title="番茄表情 {name}">{emoji}</span>'
+        return match.group(0)
+
+    fanqie_done = _FANQIE_EMOTICON_RE.sub(render_fanqie, escaped)
     return _INLINE_EMOTICON_RE.sub(
         render_emoticon,
-        escaped,
+        fanqie_done,
     )
 
 
@@ -1005,6 +1038,7 @@ a{color:var(--link)}
   background:transparent;
 }
 .reply-surface{overflow:hidden}
+.reply-stack:not(.open) .reply-surface{display:none}
 .reply-line{
   display:grid;
   grid-template-columns:28px minmax(0,1fr);
@@ -1397,9 +1431,10 @@ function appendUnique(currentList, sourceList) {
   let appended = 0;
   [...sourceList.children].forEach((item) => {
     const key = itemKey(item);
-    if (key && known.has(key)) return;
+    if (!key) return;
+    if (known.has(key)) return;
     currentList.append(item.cloneNode(true));
-    if (key) known.add(key);
+    known.add(key);
     appended += 1;
   });
   return appended;

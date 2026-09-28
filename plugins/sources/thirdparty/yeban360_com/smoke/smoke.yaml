@@ -1,0 +1,36 @@
+keyword: 凡人修仙传
+fixtures:
+  search:
+    url: "https://www.yeban360.com/plus/search.php"
+    file: search.html
+  detail:
+    url: "https://www.yeban360.com/book/8189/"
+    file: detail.html
+  toc:
+    url: "https://www.yeban360.com/book/8189/"
+    file: detail.html
+  chapter:
+    url: "https://www.yeban360.com/book/8189/1279289.html"
+    file: chapter.html
+extraFixtures:
+  - url: "https://www.yeban360.com/book/8189/1279289_2.html"
+    file: extra1.html
+expect:
+  search:
+    minResults: 1
+    firstName: 凡人修仙传
+  detail:
+    name: 凡人修仙传
+    author: 忘语
+    hasTocUrl: true
+  toc:
+    complete: true
+    expectedCount: 2446
+    minChapters: 2000
+    firstTitleContains: 第一章
+    lastTitleContains: 大结局
+    requireUniqueChapterUrls: true
+    requireSequentialIndexes: true
+  chapter:
+    minContentLength: 2000
+    titleContains: 第一章

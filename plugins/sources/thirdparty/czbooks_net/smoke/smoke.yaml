@@ -1,0 +1,40 @@
+keyword: 凡人修仙传
+fixtures:
+  search:
+    url: "https://czbooks.net/s/%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E5%82%B3?q=%E5%87%A1%E4%BA%BA%E4%BF%AE%E4%BB%99%E5%82%B3"
+    file: search.html
+  detail:
+    url: "https://czbooks.net/n/u81a"
+    file: detail.html
+  toc:
+    url: "https://czbooks.net/n/u81a"
+    file: detail.html
+  chapter:
+    url: "https://czbooks.net/n/u81a/u98f5"
+    file: chapter.html
+# search() enriches the top exact matches from detail(); without these the
+# enrichment calls fail silently against the fixture fetcher.
+extraFixtures:
+  - url: "https://czbooks.net/n/s6ob0"
+    file: extra1.html
+  - url: "https://czbooks.net/n/s6gd524l"
+    file: extra2.html
+expect:
+  search:
+    minResults: 1
+    firstName: 凡人修仙传
+  detail:
+    name: 凡人修仙传
+    author: 忘语
+    hasTocUrl: true
+  toc:
+    complete: true
+    expectedCount: 2475
+    minChapters: 2000
+    firstTitleContains: 第1章
+    lastTitleContains: 玄界之门
+    requireUniqueChapterUrls: true
+    requireSequentialIndexes: true
+  chapter:
+    minContentLength: 2000
+    titleContains: 第1章
