@@ -1,0 +1,39 @@
+contractVersion: "1.0"
+id: sample_video_films
+name: 示例视频源
+author: LegadoHub
+version: 0.1.0
+type: source
+domains:
+  - sample-video-films.test
+  - test-streams.mux.dev
+  - test-videos.co.uk
+baseUrls:
+  - https://api.sample-video-films.test
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+auth:
+  mode: none
+  loginUrl: ""
+  accountRequiredFor: []
+  cookieDomains: []
+content:
+  access: free
+  kind: video
+  streamDomains:
+    - test-streams.mux.dev
+    - test-videos.co.uk
+tags:
+  - video
+  - sample
+  - json-api
+enabled: true
+priority: 90
+sourceSeed:
+  type: manual
+  upstreamId: sample-video-films
+  upstreamFile: ""
+  upstreamCommit: ""

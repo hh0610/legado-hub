@@ -23,6 +23,7 @@ interface SearchCard {
   chapterCount?: number
   completed?: boolean
   status?: string
+  contentType?: string
   alreadyIngested?: boolean
   alreadySubscribed?: boolean
   subscriptionStatus?: string
@@ -263,6 +264,11 @@ export function SubscriptionDiscoveryPage({ mode = "user" }: SubscriptionDiscove
                     <h3 className="font-semibold text-slate-900 truncate text-base">{card.name}</h3>
                     <p className="text-sm text-slate-500 truncate mt-0.5">{card.author || "未知作者"}</p>
                     <div className="mt-2.5 text-xs text-slate-500 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      {card.contentType === "audio" ? (
+                        <Badge variant="secondary" className="bg-violet-50 text-violet-600 border-transparent hover:bg-violet-50 font-normal">有声书</Badge>
+                      ) : card.contentType === "video" ? (
+                        <Badge variant="secondary" className="bg-sky-50 text-sky-600 border-transparent hover:bg-sky-50 font-normal">视频</Badge>
+                      ) : null}
                       <span className={card.completed ? "text-slate-600" : "text-emerald-600"}>{card.completed ? "已完结" : "连载中"}</span>
                       <span className="text-slate-300">·</span>
                       <span>{card.wordCount || ""}</span>

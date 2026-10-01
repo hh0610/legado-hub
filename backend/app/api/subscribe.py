@@ -1073,17 +1073,31 @@ async def get_subscribed_chapter(request: Request, chapter_id: str):
     )
     if result is None:
         raise HTTPException(status_code=404, detail="章节尚未就绪")
-    return {
+    content_format = str(result.get("format", "") or "").strip().lower() or "text"
+    response = {
         "implemented": bool(result.get("implemented", True)),
         "chapterId": str(result.get("chapterId", chapter_id) or chapter_id),
         "title": str(result.get("title", "") or ""),
         "content": str(result.get("content", "") or ""),
+        "format": content_format,
         "authRequired": bool(result.get("authRequired", False)),
         "isPaid": bool(result.get("isPaid", False)),
         "isVip": bool(result.get("isVip", False)),
         "previewOnly": bool(result.get("previewOnly", False)),
         "extra": dict(result.get("extra") or {}) if isinstance(result.get("extra"), dict) else {},
     }
+    if content_format in {"audio", "video"}:
+        from app.services.media_proxy import signed_media_fields
+        from app.core.public_security import get_public_base_url
+
+        response.update(
+            signed_media_fields(
+                result,
+                source_id=str(result.get("sourceId", "") or ""),
+                base_api=get_public_base_url(request),
+            )
+        )
+    return response
 
 
 # ---- Legado virtual source (migrated from /api/legado) ----

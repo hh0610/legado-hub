@@ -37,6 +37,8 @@ class PluginMetadata:
     search_provider: dict = field(default_factory=dict)
     ad_patterns: list[str] = field(default_factory=list)
 
+    CONTENT_KINDS = {"text", "audio", "video"}
+
     @classmethod
     def from_dict(cls, data: dict) -> PluginMetadata:
         return cls(
@@ -88,6 +90,9 @@ class PluginMetadata:
         content_access = self.content.get("access", "unknown")
         if content_access not in {"free", "paid", "mixed", "unknown"}:
             errors.append(f"invalid content.access: {content_access}")
+        content_kind = str(self.content.get("kind", "text") or "text").strip().lower()
+        if content_kind not in self.CONTENT_KINDS:
+            errors.append(f"invalid content.kind: {content_kind}")
         proxy_mode = self.proxy.get("mode", "auto")
         if proxy_mode not in {"auto", "always", "never"}:
             errors.append(f"invalid proxy.mode: {proxy_mode}")
@@ -152,6 +157,12 @@ class PluginMetadata:
         tags = {str(tag).strip().lower() for tag in self.tags}
         source_role = str(self.content.get("sourceRole", "") or "").strip().lower()
         return "official" in tags or source_role == "official"
+
+    @property
+    def content_kind(self) -> str:
+        """Declared media kind of chapter content: "text" | "audio" | "video"."""
+        kind = str(self.content.get("kind", "text") or "text").strip().lower()
+        return kind if kind in self.CONTENT_KINDS else "text"
 
     @property
     def cookie_domains(self) -> list[str]:
@@ -282,6 +293,11 @@ class ChapterContent:
     auth_required: bool = False
     is_paid: bool = False
     extra: dict = field(default_factory=dict)
+    # media chapters (format "audio"/"video"): `content` stays empty and these
+    # carry the playable stream reference instead.
+    media_url: str = ""
+    media_mime: str = ""
+    duration_seconds: float = 0.0
 
     def to_dict(self) -> dict:
         return {
@@ -290,6 +306,9 @@ class ChapterContent:
             "chapterUrl": self.chapter_url,
             "content": self.content,
             "format": self.format,
+            "mediaUrl": self.media_url,
+            "mediaType": self.media_mime,
+            "durationSeconds": self.duration_seconds,
             "authRequired": self.auth_required,
             "isPaid": self.is_paid,
             "extra": self.extra,

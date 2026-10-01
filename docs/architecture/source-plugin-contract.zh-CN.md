@@ -115,6 +115,8 @@ tags:
 - `capabilities`：`search`、`detail`、`toc`、`chapter`、`explore`、`auth` 的子集。
 - `auth.mode`：`none`、`optional`、`required`、`manual` 之一。
 - `content.access`：`free`、`paid`、`mixed`、`unknown` 之一。
+- `content.kind`：`text`（默认）、`audio`、`video` 之一。声明本书源章节内容的媒体类型：有声书源设为 `audio`，影视/短剧源设为 `video`。媒体书源的 `search`/`detail`/`toc`/`chapter` 生命周期与文字书源完全一致，仅章节载荷不同（见下文"章节内容"）。
+- `content.streamDomains`（可选，媒体书源建议填写）：音频/视频文件实际所在的 CDN/流媒体域名列表。播放走本站媒体代理，代理只允许指向 `domains`、`baseUrls` 主机与该列表内的地址。
 - `tags`：运营提示标签。
 
 `explore` 涵盖排行榜、分类、热榜、完本榜等发现入口。仅允许官方/授权书源使用。当书源带有 `official` 标签或 `content.sourceRole: official` 时被视为官方书源。普通镜像/爬虫书源只能暴露 `search`、`detail`、`toc`、`chapter`，即使站点有这些页面也不得声明排行榜或分类能力。
@@ -490,6 +492,31 @@ Reading 搜索页应在不先打开详情的情况下获得足够数据：`name`
 ```
 
 `format` 为 `"text"` 时表示以 `\n\n` 分隔的纯文本段落。插件应通过 `ctx.clean_html()` 传递原始章节 HTML 以移除脚本、广告和站点导航，然后再返回。除非下游消费者明确要求，否则不要返回原始 HTML 并使用 `format: "html"`。
+
+媒体章节（`content.kind` 为 `audio` / `video` 的书源）：
+
+```python
+{
+    "sourceId": "demo_audio_books",
+    "title": "第1集",
+    "chapterUrl": "https://...",
+    "content": "",                      # 媒体章节正文恒为空
+    "format": "audio",                  # 或 "video"
+    "mediaUrl": "https://cdn.example.com/ep1.m3u8",   # 可播放的直链或 HLS 播放列表
+    "mediaType": "application/vnd.apple.mpegurl",     # 可选，MIME 提示
+    "durationSeconds": 1820.5,          # 可选，时长（秒）
+    "authRequired": False,
+    "isPaid": False,
+    "extra": {},
+}
+```
+
+媒体章节规则：
+
+- `content` 必须为空字符串；可播放地址放在 `mediaUrl`（直链 mp3/mp4/m4a 等，或 m3u8 播放列表）。
+- `mediaUrl` 会被服务端媒体代理（`/api/media/stream`）按 Range 续传转发，HLS 播放列表会被自动重写；插件无需自行处理防盗链或代理。
+- 仅返回 `domains`、`baseUrls` 或 `content.streamDomains` 声明域名内的媒体地址，其他地址会被代理拒绝。
+- 有声书按"集"组织为章节；视频源同理按"集/话"组织，`toc` 仍返回完整顺序目录。
 
 章节正文最佳实践：
 

@@ -1,0 +1,37 @@
+contractVersion: "1.0"
+id: sample_audio_books
+name: 示例有声书源
+author: LegadoHub
+version: 0.1.0
+type: source
+domains:
+  - sample-audio-books.test
+  - soundhelix.com
+baseUrls:
+  - https://api.sample-audio-books.test
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+auth:
+  mode: none
+  loginUrl: ""
+  accountRequiredFor: []
+  cookieDomains: []
+content:
+  access: free
+  kind: audio
+  streamDomains:
+    - soundhelix.com
+tags:
+  - audio
+  - sample
+  - json-api
+enabled: true
+priority: 90
+sourceSeed:
+  type: manual
+  upstreamId: sample-audio-books
+  upstreamFile: ""
+  upstreamCommit: ""

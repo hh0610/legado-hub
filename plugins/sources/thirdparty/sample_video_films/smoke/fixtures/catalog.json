@@ -1,0 +1,22 @@
+{
+  "books": [
+    {
+      "id": "shipin-tuyuan",
+      "name": "视频示例·兔原野",
+      "author": "Blender 基金会",
+      "coverUrl": "",
+      "intro": "示例视频：Big Buck Bunny 公开测试影片拆分的分集演示，共 2 集。",
+      "bookStatus": "completed",
+      "category": "动画"
+    },
+    {
+      "id": "shipin-duanjutai",
+      "name": "视频示例·短剧台",
+      "author": "示例工作组",
+      "coverUrl": "",
+      "intro": "示例视频：用于验证 HLS 与 mp4 播放的演示短剧，共 2 集。",
+      "bookStatus": "completed",
+      "category": "短剧"
+    }
+  ]
+}

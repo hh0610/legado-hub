@@ -112,6 +112,8 @@ Required field rules:
 - `capabilities`: subset of `search`, `detail`, `toc`, `chapter`, `explore`, `auth`.
 - `auth.mode`: one of `none`, `optional`, `required`, `manual`.
 - `content.access`: one of `free`, `paid`, `mixed`, `unknown`.
+- `content.kind`: one of `text` (default), `audio`, `video`. Declares the media type of chapter content: audiobook sources use `audio`, film/series sources use `video`. Media sources share the exact same `search`/`detail`/`toc`/`chapter` lifecycle as text sources; only the chapter payload differs (see "Chapter content" below).
+- `content.streamDomains` (optional, recommended for media sources): CDN/streaming host list where the audio/video files actually live. Playback flows through the server-side media proxy, which only allows hosts from `domains`, `baseUrls`, and this list.
 - `tags`: operational hints.
 
 `explore` covers ranking, category, hot-list, completed-list, and other discovery
@@ -544,6 +546,36 @@ Chapter content:
 Plugins should pass raw chapter HTML through `ctx.clean_html()` to remove
 scripts, ads, and site chrome before returning. Do not return raw HTML
 with `format: "html"` unless the downstream consumer explicitly requires it.
+
+Media chapters (sources whose `content.kind` is `audio` / `video`):
+
+```python
+{
+    "sourceId": "demo_audio_books",
+    "title": "第1集",
+    "chapterUrl": "https://...",
+    "content": "",                                    # always empty for media
+    "format": "audio",                                # or "video"
+    "mediaUrl": "https://cdn.example.com/ep1.m3u8",   # playable direct link or HLS playlist
+    "mediaType": "application/vnd.apple.mpegurl",     # optional MIME hint
+    "durationSeconds": 1820.5,                        # optional, seconds
+    "authRequired": False,
+    "isPaid": False,
+    "extra": {},
+}
+```
+
+Media chapter rules:
+
+- `content` must be an empty string; put the playable reference in `mediaUrl`
+  (direct mp3/mp4/m4a etc., or an m3u8 playlist).
+- `mediaUrl` is served through the server-side media proxy
+  (`/api/media/stream`) with Range passthrough; HLS playlists are rewritten
+  automatically. Plugins never handle hotlink protection or proxying themselves.
+- Only return media URLs whose host is covered by `domains`, `baseUrls`, or
+  `content.streamDomains`; other hosts are rejected by the proxy.
+- Audiobooks organize episodes as chapters; video sources likewise organize
+  episodes/segments. `toc` still returns the complete ordered catalog.
 
 Chapter content best practices:
 

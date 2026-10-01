@@ -730,7 +730,7 @@ class Catalog:
         try:
             source_id, chapter_url = decode_chapter_id(chapter_id)
         except Exception:
-            return {"implemented": True, "chapterId": chapter_id, "title": "", "content": "", "debug": {"error": "invalid chapter_id format"}}
+            return {"implemented": True, "chapterId": chapter_id, "title": "", "content": "", "format": "text", "mediaUrl": "", "debug": {"error": "invalid chapter_id format"}}
 
         if source_id == VIRTUAL_SOURCE_ID:
             from app.services.aggregate_processor import AggregateProcessor
@@ -742,7 +742,10 @@ class Catalog:
         title = result.get("title", "")
         content = result.get("content", "")
         debug = result.get("debug", {})
-        if looks_like_garbled_text(content):
+        content_format = str(result.get("format", "") or "").strip().lower() or "text"
+        media_url = str(result.get("mediaUrl", "") or "")
+        is_media = content_format in {"audio", "video"} and bool(media_url)
+        if not is_media and looks_like_garbled_text(content):
             content = ""
             debug = {**debug, "error": "garbled chapter content"}
 
@@ -759,8 +762,13 @@ class Catalog:
         response = {
             "implemented": True,
             "chapterId": chapter_id,
+            "sourceId": source_id,
             "title": title,
             "content": content,
+            "format": "text" if not is_media else content_format,
+            "mediaUrl": media_url if is_media else "",
+            "mediaType": str(result.get("mediaType", "") or "") if is_media else "",
+            "durationSeconds": float(result.get("durationSeconds", 0) or 0) if is_media else 0.0,
             "rawChapterUrl": chapter_url,
             "chapterUrl": chapter_url,
             "authRequired": bool(result.get("authRequired", False)),
@@ -769,7 +777,9 @@ class Catalog:
             "debug": debug,
         }
         # Only cache if content is non-empty and no error
-        if not debug.get("error") and content and len(content.strip()) > 0:
+        if not debug.get("error") and (
+            (content and len(content.strip()) > 0) or (is_media and media_url)
+        ):
             self.cache.set_chapter(chapter_id, source_id, chapter_url, response)
         return response
 

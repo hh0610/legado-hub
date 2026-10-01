@@ -2046,17 +2046,27 @@ async def get_book_toc(book_id: str):
     return await catalog.toc(book_id)
 
 
+def _with_signed_media(result: dict) -> dict:
+    """Sign upstream media URLs for delivery to the console player."""
+    if not isinstance(result, dict) or str(result.get("format", "") or "") not in {"audio", "video"}:
+        return result
+    from app.services.media_proxy import signed_media_fields
+
+    media = signed_media_fields(result, source_id=str(result.get("sourceId", "") or ""))
+    return {**result, **media}
+
+
 @console_route("get", "/chapter/{chapter_id}")
 async def get_chapter(chapter_id: str):
     catalog = BookCatalog()
-    return await catalog.chapter(chapter_id)
+    return _with_signed_media(await catalog.chapter(chapter_id))
 
 
 @console_route("get", "/chapter/{chapter_id}/fallback")
 async def get_chapter_fallback(chapter_id: str, source_ids: str = ""):
     catalog = BookCatalog()
     fallback_ids = [s.strip() for s in source_ids.split(",") if s.strip()]
-    return await catalog.chapter_with_fallback(chapter_id, fallback_ids or None)
+    return _with_signed_media(await catalog.chapter_with_fallback(chapter_id, fallback_ids or None))
 
 
 @console_route("get", "/books/{book_id}/chapters/{chapter_id}/navigation")

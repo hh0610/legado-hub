@@ -9,6 +9,7 @@ import { useAuth } from "@/lib/auth"
 import { executeLibraryBookMaintenanceAction } from "@/lib/library-actions"
 import { LogStream, type LogRecord } from "@/components/shared/LogStream"
 import { PagedChapterReader } from "@/components/reading/PagedChapterReader"
+import { MediaChapterPlayer } from "@/components/reading/MediaChapterPlayer"
 import { ManualCandidateDialog } from "@/components/ManualCandidateDialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -285,6 +286,19 @@ export function LibraryBookDetailPage() {
     setPreviewMode(c.previewOnly || c.status === "fetched" || c.status === "preview")
     setReadingChapter(c)
   }
+
+  const mediaKind: "audio" | "video" | null =
+    (book as { contentType?: string } | null)?.contentType === "audio"
+      ? "audio"
+      : (book as { contentType?: string } | null)?.contentType === "video"
+        ? "video"
+        : null
+  const readingChapterIndex = mediaKind && readingChapter
+    ? chapters.findIndex((c) => c.readChapterId && c.readChapterId === readingChapter.readChapterId)
+    : -1
+  const mediaChapterBody = chapterBodyQuery.data as
+    | { mediaUrl?: string; mediaType?: string; durationSeconds?: number; error?: unknown }
+    | undefined
 
   const openSubscriptionSettings = () => {
     setStartChapterIndex(String(subscription?.startChapterIndex ?? 1))
@@ -790,19 +804,48 @@ export function LibraryBookDetailPage() {
         </DialogContent>
       </Dialog>
 
-      <PagedChapterReader
-        key={readingChapter?.readChapterId || "chapter-reader"}
-        open={!!readingChapter}
-        onOpenChange={(open) => { if (!open) setReadingChapter(null) }}
-        chapter={readingChapter}
-        bookTitle={book.displayName}
-        bookAuthor={book.displayAuthor}
-        previewMode={previewMode}
-        content={chapterBodyQuery.data?.content}
-        contentLoading={chapterBodyQuery.isLoading}
-        contentError={chapterBodyQuery.error}
-        onRetryContent={() => { void chapterBodyQuery.refetch() }}
-      />
+      {mediaKind ? (
+        <MediaChapterPlayer
+          key={readingChapter?.readChapterId || "media-player"}
+          open={!!readingChapter}
+          onOpenChange={(open) => { if (!open) setReadingChapter(null) }}
+          chapter={readingChapter}
+          bookTitle={book.displayName}
+          bookAuthor={book.displayAuthor}
+          mediaKind={mediaKind}
+          bookId={bookId || ""}
+          mediaUrl={mediaChapterBody?.mediaUrl}
+          mediaType={mediaChapterBody?.mediaType}
+          durationSeconds={mediaChapterBody?.durationSeconds}
+          loading={chapterBodyQuery.isLoading}
+          error={chapterBodyQuery.error}
+          onRetry={() => { void chapterBodyQuery.refetch() }}
+          hasPrev={readingChapterIndex > 0}
+          hasNext={readingChapterIndex >= 0 && readingChapterIndex < chapters.length - 1}
+          onPrevChapter={() => {
+            if (readingChapterIndex > 0) handleChapterClick(chapters[readingChapterIndex - 1])
+          }}
+          onNextChapter={() => {
+            if (readingChapterIndex >= 0 && readingChapterIndex < chapters.length - 1) {
+              handleChapterClick(chapters[readingChapterIndex + 1])
+            }
+          }}
+        />
+      ) : (
+        <PagedChapterReader
+          key={readingChapter?.readChapterId || "chapter-reader"}
+          open={!!readingChapter}
+          onOpenChange={(open) => { if (!open) setReadingChapter(null) }}
+          chapter={readingChapter}
+          bookTitle={book.displayName}
+          bookAuthor={book.displayAuthor}
+          previewMode={previewMode}
+          content={chapterBodyQuery.data?.content}
+          contentLoading={chapterBodyQuery.isLoading}
+          contentError={chapterBodyQuery.error}
+          onRetryContent={() => { void chapterBodyQuery.refetch() }}
+        />
+      )}
       <ManualCandidateDialog
         bookId={bookId!}
         chapter={manualTarget}

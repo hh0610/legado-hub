@@ -15,6 +15,15 @@ const CAPABILITY_COLORS: Record<string, string> = {
   explore: "bg-cyan-50 text-cyan-600",
   auth: "bg-rose-50 text-rose-600",
 }
+const MEDIA_KIND_LABELS: Record<string, { label: string; className: string }> = {
+  audio: { label: "有声", className: "bg-violet-50 text-violet-600" },
+  video: { label: "视频", className: "bg-sky-50 text-sky-600" },
+}
+
+function sourceMediaKind(source: any): string {
+  const kind = String(source?.content?.kind || "").toLowerCase()
+  return kind === "audio" || kind === "video" ? kind : ""
+}
 
 function sourceLatency(source: any) {
   const latency = Number(source.health?.pingLatencyMs ?? source.latency ?? 0)
@@ -128,6 +137,11 @@ export function SourceListTable({
                           <div className="flex items-center gap-1.5">
                             <span className="text-sm font-semibold text-slate-900">{source.name}</span>
                             {(source.accessType || source.sourceType) === "Browser" && <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[9px] font-medium text-blue-700">Browser</span>}
+                            {sourceMediaKind(source) && (
+                              <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${MEDIA_KIND_LABELS[sourceMediaKind(source)].className}`}>
+                                {MEDIA_KIND_LABELS[sourceMediaKind(source)].label}
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1 space-y-0.5 text-[10px] text-slate-400">
                             <div>作者: {source.author || source.contributor || source.domain || source.baseUrls?.[0] || "-"}</div>

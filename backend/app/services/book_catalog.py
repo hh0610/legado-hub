@@ -93,7 +93,8 @@ class BookCatalog:
     ) -> dict:
         """Get chapter with fallback to alternative sources."""
         primary = await self.chapter(chapter_id)
-        if primary.get("content") or not fallback_source_ids:
+        primary_media = primary.get("format") in {"audio", "video"} and bool(primary.get("mediaUrl"))
+        if primary.get("content") or primary_media or not fallback_source_ids:
             return {**primary, "fallbackUsed": False, "fallbackTrace": []}
 
         # Decode primary source and chapter URL
@@ -115,17 +116,29 @@ class BookCatalog:
             try:
                 content = await self.scheduler.chapter(sid, chapter_url)
                 content_text = ""
-                if isinstance(content, dict):
+                content_media_url = ""
+                content_is_dict = isinstance(content, dict)
+                if content_is_dict:
                     content_text = content.get("content", "")
+                    content_format = str(content.get("format", "") or "")
+                    content_media_url = str(content.get("mediaUrl", "") or "")
+                    if content_format in {"audio", "video"} and not content_media_url:
+                        content_text = ""
                 elif hasattr(content, "content"):
                     content_text = content.content
-                if content_text:
+                if content_text or content_media_url:
                     fallback_trace.append({"sourceId": sid, "status": "success"})
+                    fallback_format = str(content.get("format", "text") or "text") if content_is_dict else "text"
+                    is_media = fallback_format in {"audio", "video"}
                     return {
                         "implemented": True,
                         "chapterId": chapter_id,
-                        "title": content.get("title", "") if isinstance(content, dict) else getattr(content, "title", ""),
+                        "title": content.get("title", "") if content_is_dict else getattr(content, "title", ""),
                         "content": content_text,
+                        "format": fallback_format,
+                        "mediaUrl": content_media_url if is_media else "",
+                        "mediaType": str(content.get("mediaType", "") or "") if is_media and content_is_dict else "",
+                        "durationSeconds": float(content.get("durationSeconds", 0) or 0) if is_media and content_is_dict else 0.0,
                         "fallbackUsed": True,
                         "fallbackSourceId": sid,
                         "fallbackTrace": fallback_trace,

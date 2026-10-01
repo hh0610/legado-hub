@@ -1,0 +1,14 @@
+keyword: 兔原野
+fixtures:
+  search:
+    url: https://api.sample-video-films.test/api/catalog.json
+    file: catalog.json
+  detail:
+    url: https://api.sample-video-films.test/api/catalog.json
+    file: catalog.json
+  toc:
+    url: https://api.sample-video-films.test/api/catalog.json
+    file: catalog.json
+  chapter:
+    url: https://api.sample-video-films.test/api/catalog.json
+    file: catalog.json

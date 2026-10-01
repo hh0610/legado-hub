@@ -315,6 +315,7 @@ class PluginScheduler:
                 if isinstance(item, dict):
                     item.setdefault("sourceId", plugin.metadata.id)
                     item.setdefault("sourceName", plugin.metadata.name)
+                    item.setdefault("contentType", plugin.metadata.content_kind)
                     items.append(item)
             self._trace_success(ctx, plugin.metadata.id, "search", latency_ms)
             return {"items": items, "error": None, "latencyMs": latency_ms, "proxyUsed": bool(ctx.proxy_url)}
@@ -401,6 +402,7 @@ class PluginScheduler:
                     if isinstance(item, dict):
                         item.setdefault("sourceId", plugin.metadata.id)
                         item.setdefault("sourceName", plugin.metadata.name)
+                        item.setdefault("contentType", plugin.metadata.content_kind)
                         items.append(item)
                 self._trace_success(ctx, plugin.metadata.id, "search", latency_ms)
                 return items, None
@@ -533,8 +535,9 @@ class PluginScheduler:
             )
             if isinstance(raw, dict):
                 raw.setdefault("sourceId", source_id)
+                raw.setdefault("contentType", plugin.metadata.content_kind)
             else:
-                raw = {"sourceId": source_id}
+                raw = {"sourceId": source_id, "contentType": plugin.metadata.content_kind}
             return {"implemented": True, "data": raw, "debug": {}}
         except Exception as exc:
             err = self._failure_for_exception(plugin, "detail", exc)
@@ -578,7 +581,7 @@ class PluginScheduler:
     async def chapter(self, source_id: str, chapter_url: str) -> dict:
         plugin = self._plugins.get(source_id)
         if not plugin or "chapter" not in plugin.capabilities:
-            return {"implemented": True, "chapterId": "", "title": "", "content": "", "debug": {"error": f"plugin not found or no chapter capability: {source_id}"}}
+            return {"implemented": True, "chapterId": "", "title": "", "content": "", "format": "text", "mediaUrl": "", "debug": {"error": f"plugin not found or no chapter capability: {source_id}"}}
         ctx = self._make_ctx(source_id)
         try:
             raw = await self._call_plugin(
@@ -589,11 +592,18 @@ class PluginScheduler:
             if isinstance(raw, dict):
                 raw.setdefault("sourceId", source_id)
                 debug = raw.get("debug", {}) if isinstance(raw.get("debug", {}), dict) else {}
+                content_format = str(raw.get("format", "") or "").strip().lower() or "text"
+                if content_format not in {"text", "audio", "video", "html"}:
+                    content_format = "text"
                 return {
                     "implemented": True,
                     "chapterId": raw.get("chapterId", ""),
                     "title": raw.get("title", ""),
                     "content": raw.get("content", ""),
+                    "format": content_format,
+                    "mediaUrl": str(raw.get("mediaUrl", "") or ""),
+                    "mediaType": str(raw.get("mediaType", "") or ""),
+                    "durationSeconds": float(raw.get("durationSeconds", 0) or 0),
                     "chapterUrl": raw.get("chapterUrl", ""),
                     "rawChapterUrl": raw.get("rawChapterUrl", "") or raw.get("chapterUrl", ""),
                     "authRequired": bool(raw.get("authRequired", False)),
@@ -601,10 +611,10 @@ class PluginScheduler:
                     "extra": raw.get("extra", {}) if isinstance(raw.get("extra", {}), dict) else {},
                     "debug": debug,
                 }
-            return {"implemented": True, "chapterId": "", "title": "", "content": "", "debug": {}}
+            return {"implemented": True, "chapterId": "", "title": "", "content": "", "format": "text", "mediaUrl": "", "debug": {}}
         except Exception as exc:
             err = self._failure_for_exception(plugin, "chapter", exc)
-            return {"implemented": True, "chapterId": "", "title": "", "content": "", "debug": {"error": err}}
+            return {"implemented": True, "chapterId": "", "title": "", "content": "", "format": "text", "mediaUrl": "", "debug": {"error": err}}
         finally:
             await ctx._fetcher.close()
 

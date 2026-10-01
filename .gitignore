@@ -27,7 +27,13 @@ frontend/visual-diff/output/
 backend/data/
 backend/config/cookies/
 backend/config/app_config.json
+backend/config/media_proxy_secret.key
 backend/runtime/
+
+# 本地目录联接：七猫书源插件本体在 E:\cs\shuyuan，不进仓库
+plugins/sources/thirdparty/qimao_novel/
+plugins/sources/thirdparty/qimao_audio/
+plugins/sources/thirdparty/qimao_video/
 /data/
 /config/
 /generated/
@@ -79,3 +85,4 @@ dev-assets/tests/*
 !dev-assets/tests/test_fetcher_cookie_headers.py
 !dev-assets/tests/test_user_subscriptions.py
 !dev-assets/tests/test_manual_candidate_selection.py
+!dev-assets/tests/test_media_support.py

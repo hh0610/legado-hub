@@ -103,6 +103,15 @@ class SharedBookStorage:
     def chapter_markdown_path(self, *, book_name: str, author: str, chapter_index: int, title: str) -> Path:
         return self.chapters_dir(book_name=book_name, author=author) / _chapter_file_name(chapter_index, title)
 
+    def chapter_media_path(self, *, book_name: str, author: str, chapter_index: int, title: str) -> Path:
+        """Descriptor JSON path for one audiobook/video chapter."""
+        safe_title = _safe_segment(title or "untitled-chapter", max_length=120)
+        return self.chapters_dir(book_name=book_name, author=author) / f"{chapter_index:04d}-{safe_title}.json"
+
+    def write_chapter_media_file(self, *, path: Path, descriptor: dict[str, Any]) -> None:
+        """Persist one media chapter descriptor (atomic JSON write)."""
+        self.atomic_write_json(path, descriptor)
+
     def runtime_dir(self, *, book_name: str, author: str) -> Path:
         return self.private_root / _book_folder_name(book_name, author) / "runtime"
 
@@ -126,6 +135,7 @@ class SharedBookStorage:
             "intro": data.get("intro", "") or "",
             "bookStatus": data.get("bookStatus", "") or "",
             "wordCount": data.get("wordCount", "") or "",
+            "contentType": str(data.get("contentType", "") or "text"),
             "totalChaptersAtSubscribe": int(data.get("totalChaptersAtSubscribe", 0) or 0),
             "primaryBookId": data.get("primaryBookId", "") or "",
             "primarySourceId": data.get("primarySourceId", "") or "",
@@ -586,6 +596,10 @@ class SharedBookStorage:
             chapter_path = book_dir / file_name if file_name else None
             if chapter_path is None or not chapter_path.exists():
                 missing.append(chapter_index)
+                continue
+            # Media chapter descriptors are JSON (trace lives inside the file).
+            if chapter_path.suffix.lower() == ".json":
+                valid_count += 1
                 continue
             try:
                 self.parse_trace_block(chapter_path.read_text(encoding="utf-8"))

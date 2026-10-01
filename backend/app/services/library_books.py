@@ -148,6 +148,11 @@ class LibraryBooksService:
                 toc_url = f"https://m.qidian.com/book/{book_id}/catalog/"
         return book_url, toc_url
 
+    def _source_content_kind(self, source_id: str) -> str:
+        plugin = self._plugins().get(source_id)
+        metadata = getattr(plugin, "metadata", None)
+        return getattr(metadata, "content_kind", "text") if metadata else "text"
+
     def _payload_from_group(self, group: dict[str, Any]) -> dict[str, Any]:
         items = [dict(item) for item in group.get("items", []) if isinstance(item, dict)]
         sources = []
@@ -176,8 +181,18 @@ class LibraryBooksService:
                     "bookStatus": item.get("status", "") or item.get("bookStatus", "") or "",
                     "author": item.get("author", "") or "",
                     "name": item.get("name", "") or "",
+                    "contentType": item.get("contentType") or self._source_content_kind(source_id),
                 }
             )
+        # A media book must never aggregate with text sources of the same title:
+        # keep only sources matching the first non-text kind when one is present.
+        media_kind = next(
+            (str(s.get("contentType", "")) for s in sources if str(s.get("contentType", "")) in {"audio", "video"}),
+            "",
+        )
+        if media_kind:
+            sources = [s for s in sources if str(s.get("contentType", "")) == media_kind]
+        content_type = media_kind or (sources[0].get("contentType", "text") if sources else "text")
         return {
             "candidateId": group.get("candidateId", ""),
             "name": group.get("name", "") or (sources[0].get("name", "") if sources else ""),
@@ -186,6 +201,7 @@ class LibraryBooksService:
             "intro": group.get("intro", "") or (sources[0].get("intro", "") if sources else ""),
             "bookStatus": group.get("bookStatus", "") or (sources[0].get("bookStatus", "") if sources else ""),
             "totalChaptersAtSubscribe": int(group.get("chapterCount", 0) or (sources[0].get("chapterCount", 0) if sources else 0) or 0),
+            "contentType": content_type,
             "sources": sources,
         }
 
@@ -350,6 +366,21 @@ class LibraryBooksService:
             "sources": sources,
         }
 
+    def _attach_content_type(self, item: dict[str, Any]) -> None:
+        """Best-effort hydrate the book contentType (payload JSON is the record)."""
+        if str(item.get("contentType", "") or "") in {"audio", "video", "text"}:
+            return
+        kind = ""
+        aggregate_book_id = str(item.get("aggregateBookId", "") or "")
+        if aggregate_book_id:
+            try:
+                kind = str(self.load_payload(aggregate_book_id).get("contentType", "") or "")
+            except Exception:
+                kind = ""
+        if kind not in {"audio", "video", "text"}:
+            kind = self._source_content_kind(str(item.get("primarySourceId", "") or ""))
+        item["contentType"] = kind or "text"
+
     def get_shared_book_detail(self, aggregate_book_id: str) -> dict[str, Any]:
         """Return the shared-file truth view for a single library book.
 
@@ -359,6 +390,7 @@ class LibraryBooksService:
         book = self.get_book(aggregate_book_id)
         if not book:
             return {"bookId": aggregate_book_id, "found": False}
+        self._attach_content_type(book)
         shared_metadata = self.load_shared_metadata(aggregate_book_id)
         source_summary = self.build_source_map_summary(shared_metadata)
         source_map = shared_metadata.get("sourceMap") if isinstance(shared_metadata.get("sourceMap"), dict) else {}
@@ -508,6 +540,44 @@ class LibraryBooksService:
         if not isinstance(chapter_path, Path) or not chapter_path.is_file():
             item["hasContent"] = False
             return item
+
+        if chapter_path.suffix.lower() == ".json":
+            # Media chapter descriptor: playable reference, no text body.
+            try:
+                descriptor = json.loads(chapter_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                item["hasContent"] = False
+                return item
+            if not isinstance(descriptor, dict) or not descriptor.get("mediaUrl"):
+                item["hasContent"] = False
+                return item
+            item["hasContent"] = True
+            item["format"] = str(descriptor.get("format", "") or "audio")
+            item["durationSeconds"] = float(descriptor.get("durationSeconds", 0) or 0)
+            item["contentLength"] = 0
+            preview_only = bool(descriptor.get("previewOnly", descriptor.get("authRequired", False)))
+            item["previewOnly"] = preview_only
+            item["isVip"] = bool(item.get("isVip", descriptor.get("isPaid", preview_only)))
+            item["isPaid"] = item["isVip"]
+            item["isPay"] = item["isVip"] and not item["previewOnly"]
+            trace = descriptor.get("trace") if isinstance(descriptor.get("trace"), dict) else {}
+            item["processedAt"] = str(
+                item.get("processedAt", "") or descriptor.get("processedAt", "") or ""
+            )
+            if not item.get("readChapterId"):
+                source_chapter_id = str(descriptor.get("sourceChapterId", "") or "")
+                if source_chapter_id:
+                    item["readChapterId"] = encode_chapter_id(
+                        VIRTUAL_SOURCE_ID,
+                        make_aggregate_chapter_url(
+                            aggregate_book_id=aggregate_book_id,
+                            source_chapter_id=source_chapter_id,
+                            title=str(item.get("title", "") or ""),
+                            index=int(item.get("chapterIndex", 0) or 0),
+                        ),
+                    )
+            return item
+
         try:
             markdown = chapter_path.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
@@ -926,6 +996,7 @@ class LibraryBooksService:
             "wordCount": display.get("wordCount", ""),
             "lastChapter": display.get("lastChapter", ""),
             "bookStatus": display.get("status", "") or display.get("bookStatus", ""),
+            "contentType": payload.get("contentType", "text"),
             "sourceCount": len(source_summary),
             "sourceSummary": source_summary,
             "hasOfficialSource": any(x["official"] for x in source_summary),
@@ -1155,6 +1226,7 @@ class LibraryBooksService:
             if item:
                 item["addedByUsername"] = self.username_for_user_id(item.get("addedByUserId", ""))
                 self._attach_book_state_summary(item)
+                self._attach_content_type(item)
                 items.append(item)
         return items
 
@@ -1552,6 +1624,9 @@ class LibraryBooksService:
         aggregate_book_id = book["aggregateBookId"]
         raw_book_url = make_library_aggregate_book_url(aggregate_book_id)
         book_id = make_library_book_id(aggregate_book_id)
+        content_type = str(book.get("contentType", "") or "")
+        if content_type not in {"audio", "video", "text"}:
+            content_type = self._source_content_kind(str(book.get("primarySourceId", "") or ""))
         return {
             "displayType": "aggregate",
             "resultKind": "aggregate",
@@ -1566,6 +1641,7 @@ class LibraryBooksService:
             "intro": book.get("intro", ""),
             "lastChapter": book.get("lastSourceChapterTitle", "") or book.get("lastLocalChapterTitle", ""),
             "wordCount": book.get("wordCount", ""),
+            "contentType": content_type,
             "aggregateBookId": aggregate_book_id,
             "searchVisibilityStatus": book.get("searchVisibilityStatus", ""),
             "libraryStatus": book.get("status", ""),
@@ -1802,6 +1878,41 @@ class LibraryBooksService:
         chapter_path = target.get("_chapterPath")
         if not isinstance(chapter_path, Path):
             return None
+
+        if chapter_path.suffix.lower() == ".json":
+            # Media chapter descriptor (audiobook/video): the playable reference
+            # lives inside the JSON, the text body stays empty.
+            try:
+                descriptor = json.loads(chapter_path.read_text(encoding="utf-8"))
+            except (OSError, UnicodeError, json.JSONDecodeError):
+                return None
+            if not isinstance(descriptor, dict) or not descriptor.get("mediaUrl"):
+                return None
+            preview_only = bool(descriptor.get("previewOnly", descriptor.get("authRequired", False)))
+            is_vip = bool(descriptor.get("isPaid", preview_only))
+            return {
+                "implemented": True,
+                "chapterId": chapter_id,
+                "title": str(descriptor.get("title", "") or target.get("title", "")),
+                "content": "",
+                "format": str(descriptor.get("format", "") or "audio"),
+                "mediaUrl": str(descriptor.get("mediaUrl", "") or ""),
+                "mediaType": str(descriptor.get("mediaType", "") or ""),
+                "durationSeconds": float(descriptor.get("durationSeconds", 0) or 0),
+                "sourceId": str(descriptor.get("sourceId", "") or ""),
+                "authRequired": bool(descriptor.get("authRequired", preview_only)),
+                "isVip": is_vip,
+                "isPaid": is_vip,
+                "isPay": is_vip and not preview_only,
+                "previewOnly": preview_only,
+                "extra": {
+                    "previewOnly": preview_only,
+                    "isVip": is_vip,
+                    "contentAccess": "preview" if preview_only else "full",
+                },
+                "debug": {"aggregate": True, "published": True, "media": True},
+            }
+
         try:
             markdown = chapter_path.read_text(encoding="utf-8")
         except (OSError, UnicodeError):

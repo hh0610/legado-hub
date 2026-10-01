@@ -42,6 +42,7 @@ interface LibraryBook {
   intro?: string
   wordCount?: string
   primarySourceName?: string
+  contentType?: string
   bookState?: {
     chapterCount?: number
     readableChapterCount?: number
@@ -356,6 +357,11 @@ export function LibraryPage() {
                     <p className="text-sm text-slate-500 truncate mt-0.5">{book.displayAuthor || "未知作者"}</p>
 
                     <div className="mt-2.5 text-xs text-slate-500 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                      {book.contentType === "audio" ? (
+                        <Badge className="rounded-full border border-violet-200 bg-violet-50 text-violet-600 hover:bg-violet-50">有声书</Badge>
+                      ) : book.contentType === "video" ? (
+                        <Badge className="rounded-full border border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-50">视频</Badge>
+                      ) : null}
                       <span className={book.bookStatus === "ongoing" ? "text-emerald-600" : "text-slate-600"}>
                         {book.bookStatus === "completed" ? "已完结" : "连载中"}
                       </span>

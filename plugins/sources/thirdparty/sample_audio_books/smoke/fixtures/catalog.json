@@ -1,0 +1,22 @@
+{
+  "books": [
+    {
+      "id": "shengxu-shidai",
+      "name": "有声示例·时光电台",
+      "author": "林晚",
+      "coverUrl": "",
+      "intro": "示例有声书：一档关于城市夜晚的电台节目，共 6 集。",
+      "bookStatus": "completed",
+      "category": "电台"
+    },
+    {
+      "id": "shengxu-xingqiu",
+      "name": "有声示例·火星漫游指南",
+      "author": "陆远",
+      "coverUrl": "",
+      "intro": "示例有声书：一部轻松的科幻广播剧，共 6 集。",
+      "bookStatus": "completed",
+      "category": "广播剧"
+    }
+  ]
+}

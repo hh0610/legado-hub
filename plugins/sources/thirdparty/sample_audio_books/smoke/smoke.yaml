@@ -1,0 +1,14 @@
+keyword: 时光电台
+fixtures:
+  search:
+    url: https://api.sample-audio-books.test/api/catalog.json
+    file: catalog.json
+  detail:
+    url: https://api.sample-audio-books.test/api/catalog.json
+    file: catalog.json
+  toc:
+    url: https://api.sample-audio-books.test/api/catalog.json
+    file: catalog.json
+  chapter:
+    url: https://api.sample-audio-books.test/api/catalog.json
+    file: catalog.json

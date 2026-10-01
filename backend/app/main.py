@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.responses import JSONResponse, RedirectResponse
 
 from app import config
-from app.api import health, legado, console, auth, subscribe
+from app.api import health, legado, console, auth, subscribe, media
 from app.services.shared_book_scheduler import SharedBookScheduler
 from app.services.source_ping_scheduler import SourcePingScheduler
 from app.storage.db import initialize_database
@@ -190,12 +190,14 @@ def create_app(
         app.include_router(auth.public_router)
         app.include_router(subscribe.public_router)
         app.include_router(legado.router)
+        app.include_router(media.router)
     elif entrypoint is EntryPoint.ADMIN:
         app.include_router(health.router)
         app.include_router(auth.admin_router)
         app.include_router(subscribe.router)
         app.include_router(legado.router)
         app.include_router(console.console_router)
+        app.include_router(media.router)
 
         # Compat: old book sources baked admin port (8766) into LEGADOHUB_BASE.
         # Access redeem/enter only exist on the reader listener — bounce GET enter.
@@ -223,6 +225,7 @@ def create_app(
         app.include_router(auth.router)
         app.include_router(subscribe.router)
         app.include_router(console.console_router)
+        app.include_router(media.router)
 
     # Serve React console frontend.
     if FRONTEND_DIST.exists():

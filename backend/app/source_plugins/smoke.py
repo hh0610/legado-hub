@@ -118,14 +118,19 @@ async def run_smoke(
                 timeout=15.0,
             )
             content_text = ""
+            content_format = ""
+            media_url = ""
             if isinstance(content, dict):
                 content_text = content.get("content", "")
+                content_format = str(content.get("format", "text") or "text")
+                media_url = str(content.get("mediaUrl", "") or "")
             elif hasattr(content, "content"):
                 content_text = content.content
-            result["stages"]["chapter"] = {
-                "status": "ok",
-                "contentLength": len(content_text),
-            }
+            stage_info: dict = {"status": "ok", "contentLength": len(content_text)}
+            if content_format in {"audio", "video"}:
+                stage_info["format"] = content_format
+                stage_info["hasMediaUrl"] = bool(media_url)
+            result["stages"]["chapter"] = stage_info
         except Exception as exc:
             result["stages"]["chapter"] = {"status": "error", "message": str(exc)}
             result["errors"].append({"stage": "chapter", "message": str(exc)})
@@ -141,10 +146,17 @@ async def run_smoke(
     if "toc" in plugin.capabilities and not chapters:
         passes = False
     if "chapter" in plugin.capabilities:
-        content_len = result["stages"].get("chapter", {}).get("contentLength", 0)
-        if content_len < 200:
-            passes = False
-            result["errors"].append({"stage": "chapter", "message": f"content too short: {content_len} chars"})
+        chapter_stage = result["stages"].get("chapter", {})
+        if chapter_stage.get("format") in {"audio", "video"}:
+            # Media chapters carry a playable reference instead of text.
+            if not chapter_stage.get("hasMediaUrl"):
+                passes = False
+                result["errors"].append({"stage": "chapter", "message": "media chapter missing mediaUrl"})
+        else:
+            content_len = chapter_stage.get("contentLength", 0)
+            if content_len < 200:
+                passes = False
+                result["errors"].append({"stage": "chapter", "message": f"content too short: {content_len} chars"})
 
     result["pass"] = passes and len(result["errors"]) == 0
     return result
@@ -467,15 +479,25 @@ async def run_fixture_smoke(
     chapter_url = _dict_value(chapters[sample_index - 1], "chapterUrl", "chapter_url") or ""
     content, stage_data, err = await run_stage("chapter", plugin.source.chapter, ctx, chapter_url)
     content_text = _dict_value(content, "content", "content") or ""
+    content_format = str(_dict_value(content, "format", "format") or "text").strip().lower()
+    media_url = str(_dict_value(content, "mediaUrl", "media_url") or "")
+    is_media_chapter = content_format in {"audio", "video"}
     paragraph_count = len([line for line in content_text.splitlines() if line.strip()])
     stage_data["contentLength"] = len(content_text)
     stage_data["paragraphCount"] = paragraph_count
+    if is_media_chapter:
+        # Media chapters carry a playable reference instead of text.
+        stage_data["format"] = content_format
+        stage_data["hasMediaUrl"] = bool(media_url)
     result["stages"]["chapter"] = stage_data
     if err:
         result["errors"].append(err)
     min_content = _expect(spec, "chapter.minContentLength", _legacy_expect(spec, "chapter_min_chars", 200))
     title_contains = _expect(spec, "chapter.titleContains")
-    if len(content_text) < min_content:
+    if is_media_chapter:
+        if not media_url:
+            result["errors"].append(_error(plugin.metadata.id, "chapter", "PARSE_EMPTY", "media chapter missing mediaUrl"))
+    elif len(content_text) < min_content:
         result["errors"].append(_error(plugin.metadata.id, "chapter", "PARSE_EMPTY", f"content too short: {len(content_text)} chars"))
     if len(content_text) >= 500 and paragraph_count < 2:
         result["errors"].append(_error(plugin.metadata.id, "chapter", "SMOKE_CONTRACT_ERROR", "long chapter content must preserve paragraph breaks"))

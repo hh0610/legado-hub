@@ -31,66 +31,6 @@ from app.core.public_security import get_public_base_url
 from app.services.reading_limits import reading_access_limiter
 
 router = APIRouter(prefix="/api/legado")
-
-# --- Fanqie HEIC/avatar image proxy (read-only whitelist, decodes heic->jpeg) ---
-import io as _io
-import httpx as _httpx
-from fastapi.responses import StreamingResponse as _StreamingResponse
-_IMAGE_PROXY_ALLOWED_HOSTS = ("fqnovelpic.com", "byteimg.com", "bytedance.net", "douyinpic.com")
-_IMAGE_PROXY_MAX_BYTES = 10 * 1024 * 1024
-_HEIF_AVAILABLE = False
-try:
-    import pillow_heif as _pillow_heif
-    _pillow_heif.register_heif_opener()
-    _HEIF_AVAILABLE = True
-except Exception:
-    _HEIF_AVAILABLE = False
-
-
-@router.get("/image-proxy")
-async def image_proxy(url: str):
-    from PIL import Image as _Image
-    raw = (url or "").strip()
-    if not raw or len(raw) > 2048:
-        raise HTTPException(400, "url 无效")
-    try:
-        parsed = urlparse(raw)
-    except ValueError:
-        raise HTTPException(400, "url 无效")
-    host = (parsed.hostname or "").lower().rstrip(".")
-    if not parsed.hostname or parsed.username or parsed.password:
-        raise HTTPException(400, "url 无效")
-    if not any(host == d or host.endswith(f".{d}") for d in _IMAGE_PROXY_ALLOWED_HOSTS):
-        raise HTTPException(403, "域名不在白名单")
-    if parsed.scheme == "http":
-        raw = "https://" + raw[len("http://"):]
-    elif parsed.scheme != "https":
-        raise HTTPException(400, "仅支持 https")
-    async with _httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-        try:
-            resp = await client.get(raw, headers={"User-Agent": "Mozilla/5.0"})
-        except _httpx.HTTPError as exc:
-            raise HTTPException(502, "CDN 获取失败") from exc
-        if resp.status_code != 200:
-            raise HTTPException(502, f"CDN 返回 {resp.status_code}")
-        content_type = resp.headers.get("content-type", "").lower()
-        content = resp.content
-        if len(content) > _IMAGE_PROXY_MAX_BYTES:
-            raise HTTPException(400, "图片过大")
-        if ("heic" in content_type or "heif" in content_type) and _HEIF_AVAILABLE:
-            try:
-                img = _Image.open(_io.BytesIO(content))
-                if img.mode in ("RGBA", "LA", "P"):
-                    img = img.convert("RGB")
-                out = _io.BytesIO()
-                img.save(out, format="JPEG", quality=85, optimize=True)
-                content = out.getvalue()
-                content_type = "image/jpeg"
-            except Exception as exc:
-                logger.warning("image-proxy heic decode failed (host=%s): %s", host, exc)
-        return _StreamingResponse(_io.BytesIO(content), media_type=content_type or "image/jpeg",
-            headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
-
 logger = logging.getLogger(__name__)
 _EXTERNAL_ID_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+:[A-Za-z0-9_-]+$")
 _MAX_EXTERNAL_ID_LENGTH = 8192
@@ -269,7 +209,13 @@ def _public_toc_response(
     }
 
 
-def _public_chapter_response(result: dict, *, chapter_id: str) -> dict:
+def _public_chapter_response(
+    result: dict,
+    *,
+    chapter_id: str,
+    source_id: str = "",
+    base_api: str = "",
+) -> dict:
     extra = result.get("extra") if isinstance(result.get("extra"), dict) else {}
     preview_only = bool(result.get("previewOnly", extra.get("previewOnly", False)))
     is_vip = bool(result.get("isVip", extra.get("isVip", result.get("isPaid", False))))
@@ -278,11 +224,20 @@ def _public_chapter_response(result: dict, *, chapter_id: str) -> dict:
         for key in ("previewOnly", "isVip", "contentAccess")
         if key in extra and isinstance(extra[key], (str, int, float, bool, type(None)))
     }
-    return {
+    content_format = str(result.get("format", "") or "").strip().lower() or "text"
+    media_fields: dict[str, Any] = {}
+    if content_format in {"audio", "video"}:
+        media_fields = _signed_media_fields(
+            result,
+            source_id=str(result.get("sourceId", "") or source_id),
+            base_api=base_api,
+        )
+    response = {
         "implemented": True,
         "chapterId": chapter_id,
         "title": _public_text(result.get("title"), max_length=1000),
         "content": str(result.get("content", "") or ""),
+        "format": content_format,
         "authRequired": bool(result.get("authRequired", False)),
         "isVip": is_vip,
         "isPaid": bool(result.get("isPaid", is_vip)),
@@ -290,6 +245,15 @@ def _public_chapter_response(result: dict, *, chapter_id: str) -> dict:
         "previewOnly": preview_only,
         "extra": safe_extra,
     }
+    response.update(media_fields)
+    return response
+
+
+def _signed_media_fields(result: dict, *, source_id: str, base_api: str) -> dict:
+    """Convert an upstream media URL into a signed, absolute proxy URL."""
+    from app.services.media_proxy import signed_media_fields
+
+    return signed_media_fields(result, source_id=source_id, base_api=base_api)
 
 
 async def _chapter_reviews(chapter_id: str, *, catalog: Catalog | None = None) -> dict:
@@ -458,11 +422,19 @@ async def get_chapter(request: Request, chapter_id: str) -> dict:
     chapter_id = _validated_external_id(chapter_id, label="章节")
     source_id, chapter_url = _decode_chapter_identity(chapter_id)
     with reading_access_limiter.guard(user.user_id, "chapter"):
-        catalog = Catalog(base_api=get_public_base_url(request))
+        base_api = get_public_base_url(request)
+        catalog = Catalog(base_api=base_api)
         if source_id == VIRTUAL_SOURCE_ID:
             shared = library_books_service.legado_chapter(chapter_id)
             if shared is None:
                 raise HTTPException(status_code=404, detail="章节尚未发布")
+            if str(shared.get("format", "") or "") in {"audio", "video"}:
+                return _public_chapter_response(
+                    shared,
+                    chapter_id=chapter_id,
+                    source_id=source_id,
+                    base_api=base_api,
+                )
             content = await _apply_reading_content_gates(
                 chapter_id=chapter_id,
                 content=str(shared.get("content", "") or ""),
@@ -471,7 +443,12 @@ async def get_chapter(request: Request, chapter_id: str) -> dict:
                 apply_purify=False,
             )
             shared = {**shared, "content": content}
-            return _public_chapter_response(shared, chapter_id=chapter_id)
+            return _public_chapter_response(
+                shared,
+                chapter_id=chapter_id,
+                source_id=source_id,
+                base_api=base_api,
+            )
         _require_third_party_plugin(
             catalog,
             source_id,
@@ -480,6 +457,13 @@ async def get_chapter(request: Request, chapter_id: str) -> dict:
             target_url=chapter_url,
         )
         result = await catalog.chapter(chapter_id)
+        if str(result.get("format", "") or "") in {"audio", "video"}:
+            return _public_chapter_response(
+                result,
+                chapter_id=chapter_id,
+                source_id=source_id,
+                base_api=base_api,
+            )
         content = await _apply_reading_content_gates(
             chapter_id=chapter_id,
             content=str(result.get("content", "") or ""),
@@ -487,7 +471,12 @@ async def get_chapter(request: Request, chapter_id: str) -> dict:
             catalog=catalog,
         )
         result = {**result, "content": content}
-        return _public_chapter_response(result, chapter_id=chapter_id)
+        return _public_chapter_response(
+            result,
+            chapter_id=chapter_id,
+            source_id=source_id,
+            base_api=base_api,
+        )
 
 
 @router.get("/chapter/{chapter_id}/reviews")

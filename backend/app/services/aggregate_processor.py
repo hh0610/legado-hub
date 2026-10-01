@@ -1129,6 +1129,7 @@ class AggregateProcessor:
         next_check = (datetime.now(timezone.utc) + timedelta(minutes=interval)).isoformat()
         if not self.processing_enabled(aggregate_book_id):
             return {"bookId": aggregate_book_id, "success": False, "error": "aggregate processing disabled"}
+        is_media_book = str(payload.get("contentType", "") or "").strip().lower() in {"audio", "video"}
 
         try:
             catalog = BookCatalog()
@@ -1145,20 +1146,25 @@ class AggregateProcessor:
             detail = detail if isinstance(detail, dict) else {}
             chapters = [dict(item) for item in toc.get("chapters", []) if isinstance(item, dict)]
             self.register_toc(aggregate_book_id, payload, chapters)
-            payload = await self._ensure_candidate_sources_for_book(
-                aggregate_book_id,
-                payload,
-            )
-            chapters_to_process = self._chapters_for_processing(
-                aggregate_book_id, limit=chapter_limit
-            )
-            snapshot_result = await self._run_initial_candidate_prefetch(
-                catalog=catalog,
-                aggregate_book_id=aggregate_book_id,
-                payload=payload,
-                official_chapters=chapters,
-                chapters_to_process=chapters_to_process,
-            )
+            if is_media_book:
+                # Cross-source candidate mapping is a text-purification concept;
+                # media chapters always play the primary source's stream.
+                snapshot_result = {"skipped": True, "reason": "media_book"}
+            else:
+                payload = await self._ensure_candidate_sources_for_book(
+                    aggregate_book_id,
+                    payload,
+                )
+                chapters_to_process = self._chapters_for_processing(
+                    aggregate_book_id, limit=chapter_limit
+                )
+                snapshot_result = await self._run_initial_candidate_prefetch(
+                    catalog=catalog,
+                    aggregate_book_id=aggregate_book_id,
+                    payload=payload,
+                    official_chapters=chapters,
+                    chapters_to_process=chapters_to_process,
+                )
 
             chapter_results = []
             if chapters_to_process:
@@ -2596,6 +2602,195 @@ class AggregateProcessor:
                 result["passed"] = True
         return result
 
+    async def _process_media_chapter(self, *, catalog, chapter: dict, payload: dict, media_kind: str) -> dict:
+        """Media passthrough branch for audiobook/video books.
+
+        The text stages (classification, line consensus, AI polish, cross-source
+        fallback) do not apply: a chapter is 'processed' once the primary source
+        returns a playable stream reference. Failures raise so the outer loop's
+        regular retry policy records them.
+        """
+        chapter_id = chapter["chapterId"]
+        source_chapter_id = chapter.get("sourceChapterId") or chapter_id
+        aggregate_book_id = chapter.get("aggregateBookId", "")
+        title = chapter.get("title", "")
+        chapter_index = chapter.get("chapterIndex")
+
+        primary_source_id = payload.get("primarySourceId", "")
+        if not primary_source_id:
+            primary_source_id = source_chapter_id.split(":", 1)[0] if ":" in source_chapter_id else ""
+
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=chapter_index,
+            title=title,
+            event="chapter_start",
+            stage="stage1",
+            payload={"step": "开始处理媒体章节", "sourceId": primary_source_id, "mediaKind": media_kind},
+        )
+        async with self._source_slot(
+            aggregate_book_id=aggregate_book_id,
+            source_id=primary_source_id,
+        ):
+            result = await catalog.chapter(source_chapter_id)
+
+        result_format = str(result.get("format", "") or "").strip().lower()
+        media_url = str(result.get("mediaUrl", "") or "")
+        media_source_id = str(result.get("sourceId", "") or primary_source_id)
+        self._log_chapter_step(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=chapter_index,
+            title=title,
+            event="media_fetch_complete",
+            stage="stage1",
+            payload={
+                "step": "媒体地址获取完成",
+                "sourceId": media_source_id,
+                "format": result_format,
+                "hasMediaUrl": bool(media_url),
+            },
+        )
+        if result_format in {"audio", "video"} and media_url:
+            self._write_media_chapter_result(
+                aggregate_book_id=aggregate_book_id,
+                chapter_id=chapter_id,
+                title=title,
+                chapter_index=chapter_index,
+                source_chapter_id=source_chapter_id,
+                source_id=media_source_id,
+                media_kind=result_format,
+                media_url=media_url,
+                media_mime=str(result.get("mediaType", "") or ""),
+                duration_seconds=result.get("durationSeconds", 0),
+                auth_required=bool(result.get("authRequired", False)),
+                is_paid=bool(result.get("isPaid", False)),
+            )
+            return {"chapterId": chapter_id, "status": "processed", "format": result_format}
+
+        error_info = result.get("debug", {}).get("error") if isinstance(result.get("debug", {}), dict) else None
+        raise RuntimeError(f"media chapter has no playable stream: {error_info or result_format or 'empty'}")
+
+    def _write_media_chapter_result(
+        self,
+        *,
+        aggregate_book_id: str,
+        chapter_id: str,
+        title: str,
+        chapter_index: int | None,
+        source_chapter_id: str,
+        source_id: str,
+        media_kind: str,
+        media_url: str,
+        media_mime: str,
+        duration_seconds: float,
+        auth_required: bool,
+        is_paid: bool,
+    ) -> None:
+        """Persist one media chapter: descriptor JSON + DB state + index entry."""
+        now = self._now()
+        storage = self._shared_book_storage()
+        descriptor = {
+            "schemaVersion": 1,
+            "chapterId": chapter_id,
+            "chapterIndex": int(chapter_index or 0),
+            "title": title,
+            "format": media_kind,
+            "mediaUrl": media_url,
+            "mediaType": media_mime,
+            "durationSeconds": float(duration_seconds or 0),
+            "sourceId": source_id,
+            "sourceChapterId": source_chapter_id,
+            "authRequired": auth_required,
+            "isPaid": is_paid,
+            "previewOnly": auth_required,
+            "processedAt": now,
+            "trace": {
+                "chapterIndex": int(chapter_index or 0),
+                "chapterStatus": "readable",
+                "format": media_kind,
+                "mediaUrl": media_url,
+                "isVip": is_paid,
+                "previewOnly": auth_required,
+                "primarySource": {
+                    "sourceId": source_id,
+                    "sourceChapterId": source_chapter_id,
+                },
+                "processedAt": now,
+            },
+        }
+        trace_hash = hashlib.sha256(
+            json.dumps(descriptor, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        with self._conn() as conn:
+            book_name = self._aggregate_book_name(conn, aggregate_book_id)
+            book_author = self._aggregate_book_author(conn, aggregate_book_id)
+            shared_path = storage.chapter_media_path(
+                book_name=book_name,
+                author=book_author,
+                chapter_index=int(chapter_index or 0),
+                title=title,
+            )
+            storage.write_chapter_media_file(path=shared_path, descriptor=descriptor)
+            conn.execute(
+                """
+                UPDATE aggregate_chapter_tasks
+                SET status = 'processed', content_length = 0, processed_content = '',
+                    last_processed_at = ?, placeholder = 0,
+                    error = '', last_error_code = '', retry_count = 0, next_retry_time = NULL,
+                    trace_hash = ?, source_snapshot_refs_json = '[]',
+                    source_alignment_json = '{}', fallback_source_id = '',
+                    manual_supplement = 0, manual_supplement_json = '{}',
+                    ai_model = '', deviation_score = 0, ai_self_score = 0,
+                    ai_prompt_tokens = 0, ai_completion_tokens = 0,
+                    source_word_count = 0, primary_source_chapter_url = ?, preview_only = ?,
+                    ai_total_tokens = 0, ai_latency_ms = 0,
+                    content_file_path = ?, updated_at = ?
+                WHERE chapter_id = ?
+                """,
+                (
+                    now,
+                    trace_hash,
+                    source_chapter_id,
+                    1 if auth_required else 0,
+                    str(shared_path),
+                    now,
+                    chapter_id,
+                ),
+            )
+            metadata_payload = self._build_shared_metadata_payload(
+                aggregate_book_id=aggregate_book_id,
+                book_name=book_name,
+                book_author=book_author,
+                conn=conn,
+            )
+            storage.update_chapter_index_entry(
+                chapter_index_path=storage.chapter_index_path(book_name=book_name, author=book_author),
+                metadata_path=storage.metadata_path(book_name=book_name, author=book_author),
+                metadata_payload=metadata_payload,
+                entry={
+                    "index": int(chapter_index or 0),
+                    "title": title,
+                    "status": "readable",
+                    "file": f"chapters/{shared_path.name}",
+                    "isVip": is_paid,
+                    "sourceId": source_id,
+                    "sourceChapterId": source_chapter_id,
+                    "contentType": media_kind,
+                },
+                chapter_trace=descriptor["trace"],
+            )
+            conn.commit()
+        self._refresh_shared_book_state(aggregate_book_id)
+        self._log_chapter_result(
+            aggregate_book_id=aggregate_book_id,
+            chapter_index=chapter_index,
+            title=title,
+            status="processed",
+            alignment_json={"primarySourceId": source_id},
+            fallback_source_id="",
+            preview_only=auth_required,
+        )
+
     async def _process_chapter(self, catalog, chapter: dict) -> dict:
         """Process a single chapter through the 3-path pipeline.
 
@@ -2615,6 +2810,11 @@ class AggregateProcessor:
         chapter_index = chapter.get("chapterIndex")
 
         payload = self._load_aggregate_payload(aggregate_book_id)
+        content_kind = str(payload.get("contentType", "") or "").strip().lower()
+        if content_kind in {"audio", "video"}:
+            return await self._process_media_chapter(
+                catalog=catalog, chapter=chapter, payload=payload, media_kind=content_kind,
+            )
         primary_source_id = payload.get("primarySourceId", "")
         if not primary_source_id:
             primary_source_id = source_chapter_id.split(":")[0] if ":" in source_chapter_id else ""
@@ -4960,15 +5160,25 @@ class AggregateProcessor:
         title = (row[0] if row else "") or payload.get("title", "")
         status = row[1] if row else "pending"
         if row and status in ("processed", "fallback") and row[2]:
-            content = self._read_chapter_content_from_file(row[2])
-            if content:
-                return {
-                    "implemented": True,
-                    "chapterId": aggregate_chapter_id,
-                    "title": title,
-                    "content": content,
-                    "debug": {"aggregate": True, "status": status},
-                }
+            if str(row[2]).lower().endswith(".json"):
+                media_response = self._media_chapter_response_from_file(
+                    chapter_id=aggregate_chapter_id,
+                    title=title,
+                    status=status,
+                    file_path=row[2],
+                )
+                if media_response is not None:
+                    return media_response
+            else:
+                content = self._read_chapter_content_from_file(row[2])
+                if content:
+                    return {
+                        "implemented": True,
+                        "chapterId": aggregate_chapter_id,
+                        "title": title,
+                        "content": content,
+                        "debug": {"aggregate": True, "status": status},
+                    }
         return {
             "implemented": True,
             "chapterId": aggregate_chapter_id,
@@ -4987,6 +5197,50 @@ class AggregateProcessor:
             return content
         cleaned = TRACE_BLOCK_RE.sub("", str(content))
         return cleaned.rstrip()
+
+    def _media_chapter_response_from_file(
+        self,
+        *,
+        chapter_id: str,
+        title: str,
+        status: str,
+        file_path: str,
+    ) -> dict | None:
+        """Load one media chapter descriptor for the aggregate read path."""
+        try:
+            path = Path(file_path)
+            if not path.exists():
+                return None
+            descriptor = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            logger.warning("Failed to read media chapter descriptor: %s", file_path)
+            return None
+        if not isinstance(descriptor, dict) or not descriptor.get("mediaUrl"):
+            return None
+        preview_only = bool(descriptor.get("previewOnly", descriptor.get("authRequired", False)))
+        is_vip = bool(descriptor.get("isPaid", preview_only))
+        return {
+            "implemented": True,
+            "chapterId": chapter_id,
+            "title": str(descriptor.get("title", "") or title),
+            "content": "",
+            "format": str(descriptor.get("format", "") or "audio"),
+            "mediaUrl": str(descriptor.get("mediaUrl", "") or ""),
+            "mediaType": str(descriptor.get("mediaType", "") or ""),
+            "durationSeconds": float(descriptor.get("durationSeconds", 0) or 0),
+            "sourceId": str(descriptor.get("sourceId", "") or ""),
+            "authRequired": bool(descriptor.get("authRequired", preview_only)),
+            "isVip": is_vip,
+            "isPaid": is_vip,
+            "isPay": is_vip and not preview_only,
+            "previewOnly": preview_only,
+            "extra": {
+                "previewOnly": preview_only,
+                "isVip": is_vip,
+                "contentAccess": "preview" if preview_only else "full",
+            },
+            "debug": {"aggregate": True, "status": status, "media": True},
+        }
 
     def _looks_like_garbled_text(self, content: str) -> bool:
         return looks_like_garbled_text(content)
@@ -5414,6 +5668,7 @@ class AggregateProcessor:
             "intro": (row[2] if row else "") or payload.get("intro") or "",
             "bookStatus": (row[8] if row else "") or payload.get("bookStatus") or "",
             "wordCount": (row[3] if row else "") or payload.get("wordCount") or "",
+            "contentType": str(payload.get("contentType", "") or "text"),
             "totalChaptersAtSubscribe": int((row[7] if row else 0) or payload.get("totalChaptersAtSubscribe", 0) or 0),
             "primaryBookId": (row[4] if row else "") or payload.get("primaryBookId") or "",
             "primarySourceId": (row[5] if row else "") or payload.get("primarySourceId") or "",
