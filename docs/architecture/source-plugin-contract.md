@@ -123,6 +123,38 @@ Ordinary mirror/scraper sources must expose only `search`, `detail`, `toc`, and
 `chapter`; they must not declare ranking or category capabilities even if the
 site has those pages.
 
+`ui` (optional, declarative source settings): the plugin declares settings
+items and actions in metadata; the console ("Source management → Source
+settings") renders them automatically (admin-only), values persist on the
+server side and are injected into the plugin runtime via
+`ctx.settings.get(key, default)`. Action invocations also carry the effective
+values as `payload["values"]`.
+
+```yaml
+ui:
+  - title: Guest identity
+    description: Device fingerprint and token live server-side.
+    items:
+      - { type: button, id: status, label: Check status, action: ui_status }
+      - { type: text,   id: api_key, label: API key, help: optional }
+      - { type: toggle, id: verbose, label: Verbose logs, default: false }
+      - { type: number, id: limit, label: Page size, default: 20 }
+      - { type: select, id: mode, label: Mode, choices: [fast, full], default: fast }
+      - { type: color,  id: accent, label: Accent color, default: "#E34B4B" }
+      - { type: hint,   label: Settings are admin-only }
+```
+
+- Item types: `button`, `toggle`, `text`, `number`, `select`, `color`, `hint`;
+  non-hint items need a unique `id` and a `label` within the same `ui` block.
+- `button.action` must be a callable async method of the same name on `Source`:
+  `async def ui_status(self, ctx, payload) -> dict`, returning
+  `{"ok": bool, "message": str, "data": {...}}` (a plain string is treated as
+  the message); `payload` carries `values` (effective settings), `action`,
+  and `input` (extra console-provided input).
+- Actions are triggered only by admins from the console (plugin rate limits and
+  timeouts apply); readers are unaffected. Do not use `ui` for reader-facing
+  content configuration.
+
 Optional fields:
 
 ```yaml

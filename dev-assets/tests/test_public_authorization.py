@@ -519,7 +519,9 @@ def test_personal_legado_source_embeds_bound_access_code() -> None:
     )
     assert response.status_code == 200
     sources = response.json()
-    assert len(sources) == 1
+    # Dual-source export: text (bookSourceType 0) + audio sibling (1), same code.
+    assert len(sources) == 2
+    assert {s["bookSourceType"] for s in sources} == {0, 1}
     source = sources[0]
     code_literal = json.dumps(created["accessCode"], ensure_ascii=False)
     assert f"var LEGADOHUB_ACCESS_CODE = {code_literal}" in source["loginUrl"]

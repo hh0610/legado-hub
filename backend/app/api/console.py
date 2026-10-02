@@ -1228,6 +1228,137 @@ def get_plugin(plugin_id: str):
     }
 
 
+@console_route("get", "/plugins/{plugin_id}/ui")
+def get_plugin_ui(plugin_id: str):
+    """Schema + effective values for the plugin's declared settings ui."""
+    plugin = _plugin_scheduler._plugins.get(plugin_id)
+    if not plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    from app.services.plugin_settings import PluginSettingsStore
+
+    saved = PluginSettingsStore().get_values(plugin_id)
+    values = {}
+    for item in plugin.metadata.ui_setting_items():
+        item_id = str(item.get("id", ""))
+        if item_id in saved:
+            values[item_id] = saved[item_id]
+        elif item.get("default") is not None:
+            values[item_id] = item.get("default")
+    return {
+        "pluginId": plugin_id,
+        "name": plugin.metadata.name,
+        "groups": plugin.metadata.ui,
+        "values": values,
+        "configured": sorted(
+            key for key in saved if any(item.get("id") == key for item in plugin.metadata.ui_setting_items())
+        ),
+    }
+
+
+def _validated_ui_values(plugin, values: dict) -> dict:
+    """Coerce incoming ui values against the schema; raises 422 on mismatch."""
+    schema = {str(item.get("id", "")): item for item in plugin.metadata.ui_setting_items()}
+    unknown = [key for key in values if key not in schema]
+    if unknown:
+        raise HTTPException(status_code=422, detail=f"不支持的字段: {', '.join(sorted(unknown))}")
+    clean: dict = {}
+    for key, item in schema.items():
+        if key not in values:
+            continue
+        raw = values[key]
+        item_type = str(item.get("type", ""))
+        if item_type == "toggle":
+            if isinstance(raw, str):
+                clean[key] = raw.strip().lower() in {"1", "true", "on", "yes"}
+            else:
+                clean[key] = bool(raw)
+        elif item_type == "number":
+            if isinstance(raw, bool):
+                raise HTTPException(status_code=422, detail=f"{key} 必须是数字")
+            try:
+                number = float(raw)
+            except (TypeError, ValueError) as exc:
+                raise HTTPException(status_code=422, detail=f"{key} 必须是数字") from exc
+            clean[key] = int(number) if number.is_integer() else number
+        elif item_type == "select":
+            text = str(raw)
+            if text not in item.get("choices", []):
+                raise HTTPException(status_code=422, detail=f"{key} 必须是选项之一")
+            clean[key] = text
+        elif item_type == "color":
+            import re as _re
+
+            text = str(raw).strip()
+            if not _re.match(r"^#[0-9a-fA-F]{6}$", text):
+                raise HTTPException(status_code=422, detail=f"{key} 必须是 #RRGGBB 颜色值")
+            clean[key] = text
+        else:
+            clean[key] = str(raw)
+    return clean
+
+
+@console_route("put", "/plugins/{plugin_id}/ui")
+def put_plugin_ui(plugin_id: str, payload: dict):
+    """Merge-save declared ui settings for one plugin."""
+    plugin = _plugin_scheduler._plugins.get(plugin_id)
+    if not plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    values = payload.get("values") if isinstance(payload, dict) else None
+    if not isinstance(values, dict):
+        raise HTTPException(status_code=422, detail="payload.values 必须是对象")
+    clean = _validated_ui_values(plugin, values)
+    from app.services.plugin_settings import PluginSettingsStore
+
+    PluginSettingsStore().set_values(plugin_id, clean)
+    return {"ok": True, "saved": sorted(clean.keys())}
+
+
+@console_route("post", "/plugins/{plugin_id}/ui/actions/{action}")
+async def run_plugin_ui_action(plugin_id: str, action: str, payload: dict | None = None):
+    """Run one ui-declared plugin action with the plugin's current settings."""
+    plugin = _plugin_scheduler._plugins.get(plugin_id)
+    if not plugin:
+        raise HTTPException(status_code=404, detail="插件不存在")
+    if action not in plugin.metadata.ui_actions():
+        raise HTTPException(status_code=404, detail="动作不存在")
+    method = getattr(plugin.source, action, None)
+    if not callable(method):
+        raise HTTPException(status_code=404, detail="动作不存在")
+
+    from app.services.plugin_settings import PluginSettingsStore
+
+    store = PluginSettingsStore()
+    saved = store.get_values(plugin_id)
+    effective = {}
+    for item in plugin.metadata.ui_setting_items():
+        item_id = str(item.get("id", ""))
+        if item_id in saved:
+            effective[item_id] = saved[item_id]
+        elif item.get("default") is not None:
+            effective[item_id] = item.get("default")
+    body = payload if isinstance(payload, dict) else {}
+    if not plugin.metadata.enabled:
+        raise HTTPException(status_code=409, detail="插件已停用")
+
+    ctx = _plugin_scheduler._make_ctx(plugin_id)
+    try:
+        raw = await _plugin_scheduler._call_plugin(
+            plugin,
+            lambda: method(ctx, {"action": action, "values": effective, "input": body}),
+            timeout=_plugin_scheduler.timeout_for_plugin(plugin),
+        )
+    finally:
+        await ctx._fetcher.close()
+    if isinstance(raw, dict):
+        message = str(raw.get("message", "") or "")
+        result = {"ok": bool(raw.get("ok", True)), "message": message, "data": raw.get("data", {})}
+    elif raw is None:
+        result = {"ok": True, "message": "已完成", "data": {}}
+    else:
+        result = {"ok": True, "message": str(raw), "data": {}}
+    return result
+
+
 @console_route("get", "/plugins/{plugin_id}/attempts")
 def get_plugin_attempts(plugin_id: str, limit: int = 20):
     plugin = _plugin_scheduler._plugins.get(plugin_id)

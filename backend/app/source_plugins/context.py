@@ -174,6 +174,25 @@ class CookieJar:
         self._store.save(self._plugin_id, {"cookies": cookies})
 
 
+class PluginSettingsView:
+    """Read-only view of the plugin's persisted ui settings for the plugin."""
+
+    def __init__(self, values: dict | None = None):
+        self._values: dict = dict(values or {})
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self._values.get(key, default)
+
+    def __getitem__(self, key: str) -> Any:
+        return self._values[key]
+
+    def __contains__(self, key: str) -> bool:
+        return key in self._values
+
+    def as_dict(self) -> dict:
+        return dict(self._values)
+
+
 class PluginContext:
     def __init__(
         self,
@@ -184,6 +203,7 @@ class PluginContext:
         proxy_mode: str = "auto",
         proxy_url: str = "",
         cookie_allowed: bool = True,
+        settings: dict | None = None,
     ):
         self._fetcher = fetcher
         self.plugin_id = plugin_id
@@ -192,6 +212,7 @@ class PluginContext:
         self.proxy_mode = proxy_mode
         self.proxy_url = proxy_url
         self.access = SourceAccessBridge(self)
+        self.settings = PluginSettingsView(settings)
         self._traces: list[dict] = []
 
     # -- Parsing --

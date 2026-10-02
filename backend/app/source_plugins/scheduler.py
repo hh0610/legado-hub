@@ -186,6 +186,7 @@ class PluginScheduler:
         proxy_url = self._resolve_proxy_url(plugin)
         proxy_mode = (plugin.metadata.proxy or {}).get("mode", "auto") if plugin else "auto"
         cookie_allowed = bool(plugin and plugin.metadata.declares_cookies)
+        settings = self._plugin_settings_values(plugin_id) if plugin and plugin.metadata.ui else {}
         ctx = PluginContext(
             fetcher=self._make_fetcher_with_cookies(plugin_id),
             plugin_id=plugin_id,
@@ -194,10 +195,24 @@ class PluginScheduler:
             proxy_mode=proxy_mode,
             proxy_url=proxy_url,
             cookie_allowed=cookie_allowed,
+            settings=settings,
         )
         if plugin and plugin.metadata.uses_search_provider("search"):
             ctx.allow_search_provider = True
         return ctx
+
+    def _plugin_settings_values(self, plugin_id: str) -> dict:
+        """Persisted ui settings for one plugin; cached briefly per plugin."""
+        try:
+            store = self._settings_store
+        except AttributeError:
+            from app.services.plugin_settings import PluginSettingsStore
+
+            store = self._settings_store = PluginSettingsStore()
+        try:
+            return store.get_values(plugin_id)
+        except Exception:
+            return {}
 
     def _make_fetcher_with_cookies(self, plugin_id: str) -> Fetcher:
         try:

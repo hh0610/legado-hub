@@ -121,6 +121,33 @@ tags:
 
 `explore` 涵盖排行榜、分类、热榜、完本榜等发现入口。仅允许官方/授权书源使用。当书源带有 `official` 标签或 `content.sourceRole: official` 时被视为官方书源。普通镜像/爬虫书源只能暴露 `search`、`detail`、`toc`、`chapter`，即使站点有这些页面也不得声明排行榜或分类能力。
 
+`ui`（可选，声明式源设置）：插件在 metadata 中声明配置项与动作，控制台
+「书源管理 → 源设置」自动渲染（仅管理员），值持久化在服务端并通过
+`ctx.settings.get(key, default)` 注入插件运行时；动作调用时还通过
+`payload["values"]` 携带当前生效值。
+
+```yaml
+ui:
+  - title: 游客身份
+    description: 设备指纹与 token 均保存在服务端。
+    items:
+      - { type: button, id: status, label: 查看状态, action: ui_status }
+      - { type: text,   id: api_key, label: API 密钥, help: 可选 }
+      - { type: toggle, id: verbose, label: 详细日志, default: false }
+      - { type: number, id: limit, label: 单页条数, default: 20 }
+      - { type: select, id: mode, label: 模式, choices: [fast, full], default: fast }
+      - { type: color,  id: accent, label: 主题色, default: "#E34B4B" }
+      - { type: hint,   label: 设置仅管理员可见可改 }
+```
+
+- 条目类型：`button`、`toggle`、`text`、`number`、`select`、`color`、`hint`；同一 `ui` 内非 hint 条目的 `id` 必须唯一，`label` 必填。
+- `button.action` 必须是 Source 上可调用的同名 async 方法：
+  `async def ui_status(self, ctx, payload) -> dict`，返回
+  `{"ok": bool, "message": str, "data": {...}}`（返回字符串按 message 处理）；
+  `payload` 含 `values`（当前生效设置）、`action` 与 `input`（控制台附加输入）。
+- 动作只能由管理员从控制台触发（走插件限流与超时），读取端（读者）无感知；
+  插件不得在 `ui` 中承载面向读者的内容配置。
+
 可选字段：
 
 ```yaml

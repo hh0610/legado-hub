@@ -28,6 +28,23 @@ tags:
   - audio
   - sample
   - json-api
+ui:
+  - title: 播放设置
+    description: 值保存在服务端，经 ctx.settings 注入插件运行时。
+    items:
+      - type: number
+        id: max_episodes
+        label: 目录最大集数
+        default: 0
+        help: 0 表示不限制，大于 0 时截断 toc 输出。
+      - type: toggle
+        id: reverse_order
+        label: 目录倒序
+        default: false
+      - type: button
+        id: check
+        label: 检查目录设置生效情况
+        action: ui_check_settings
 enabled: true
 priority: 90
 sourceSeed:

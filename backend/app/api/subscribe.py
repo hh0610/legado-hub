@@ -397,6 +397,24 @@ def _publicize_search_items(
     return items
 
 
+def _filter_items_for_media(raw_items: list, media: str | None) -> list[dict]:
+    """Reading media filter for search/explore items.
+
+    ``None`` (text source default) drops audio/video items — Reading cannot
+    play them. ``"audio"`` keeps audio-only (bookSourceType 1 source).
+    """
+    def _kind(item: dict) -> str:
+        kind = str(item.get("contentType", "") or "").strip().lower()
+        return kind if kind in {"text", "audio", "video"} else "text"
+
+    items = [item for item in raw_items if isinstance(item, dict)]
+    if media == "audio":
+        return [item for item in items if _kind(item) == "audio"]
+    if media == "video":
+        return [item for item in items if _kind(item) == "video"]
+    return [item for item in items if _kind(item) not in {"audio", "video"}]
+
+
 def _legado_search_payload(
     *,
     keyword: str,
@@ -407,6 +425,7 @@ def _legado_search_payload(
     snapshot: dict | None = None,
     library_items: list[dict] | None = None,
     third_party_items: list[dict] | None = None,
+    media: str | None = None,
 ) -> dict:
     if third_party_items is None:
         snapshot_items = (snapshot or {}).get("items", [])
@@ -430,7 +449,7 @@ def _legado_search_payload(
 
     raw_items.extend(third_party_items or [])
     items = _publicize_search_items(
-        raw_items,
+        _filter_items_for_media(raw_items, media),
         base_api=base_api,
         allowed_source_ids=allowed_source_ids,
     )
@@ -1151,14 +1170,17 @@ async def legado_search(
     keyword: str = "",
     page: str = "1",
     waitMs: str = "0",
+    media: str = "",
 ) -> dict:
     """Legado book-source search.
 
     ``waitMs`` is optional and only caps the **per-page** short wait (not the
     120s job lifetime). Default 0 uses built-in page1/follow waits.
+    ``media`` selects the sibling source: empty = text (default), "audio" =
+    the bookSourceType-1 audio source (audio items only).
     """
     user = auth_service.require_reading_user(request, touch=False)
-    _reject_legado_query_anomalies(request, {"keyword", "page", "waitMs"})
+    _reject_legado_query_anomalies(request, {"keyword", "page", "waitMs", "media"})
     keyword = _validated_legado_text(keyword, field="keyword", max_length=200)
     parsed_page = _legado_query_int(page, field="page", minimum=1, maximum=1000)
     parsed_wait_ms = _legado_query_int(
@@ -1167,6 +1189,8 @@ async def legado_search(
         minimum=0,
         maximum=_READING_SEARCH_TIMEOUT_MS,
     )
+    if media not in {"", "audio"}:
+        raise HTTPException(status_code=422, detail="media 无效")
     with reading_access_limiter.guard(user.user_id, "search"):
         return await _legado_search_response(
             keyword=keyword,
@@ -1174,6 +1198,7 @@ async def legado_search(
             wait_ms=parsed_wait_ms,
             base_api=get_public_base_url(request),
             user_id=user.user_id,
+            media=media or None,
         )
 
 
@@ -1184,6 +1209,7 @@ async def _legado_search_response(
     wait_ms: int,
     base_api: str,
     user_id: str,
+    media: str | None = None,
 ) -> dict:
     """Progressive Legado search via page flips.
 
@@ -1191,8 +1217,11 @@ async def _legado_search_response(
     page=2+: reuse the same job, short-wait for *new* third-party hits only.
     Job hard-stops at 120s from page1 start.
     """
+    def _payload(**kwargs: object) -> dict:
+        return _legado_search_payload(**kwargs, media=media)
+
     if not keyword.strip():
-        return _legado_search_payload(
+        return _payload(
             keyword=keyword,
             page=page,
             base_api=base_api,
@@ -1218,7 +1247,7 @@ async def _legado_search_response(
     )
 
     if not source_ids:
-        return _legado_search_payload(
+        return _payload(
             keyword=keyword,
             page=page,
             base_api=base_api,
@@ -1305,7 +1334,7 @@ async def _legado_search_response(
                     "liveSearchPending": pending,
                 }
 
-            return _legado_search_payload(
+            return _payload(
                 keyword=keyword,
                 page=page,
                 base_api=base_api,
@@ -1324,7 +1353,7 @@ async def _legado_search_response(
         emitted_ids: set[str] = set(state.get("emitted_ids") or set())
 
         if not job_id or not _owns_legado_search(job_id, user_id):
-            return _legado_search_payload(
+            return _payload(
                 keyword=keyword,
                 page=page,
                 base_api=base_api,
@@ -1340,7 +1369,7 @@ async def _legado_search_response(
             session = search_service.get_session(job_id)
             if session is not None and session.status not in _TERMINAL_SEARCH_STATUSES:
                 search_service.cancel_job(job_id)
-            return _legado_search_payload(
+            return _payload(
                 keyword=keyword,
                 page=page,
                 base_api=base_api,
@@ -1406,7 +1435,7 @@ async def _legado_search_response(
                 "liveSearchPending": pending and bool(batch),
             }
 
-        return _legado_search_payload(
+        return _payload(
             keyword=keyword,
             page=page,
             base_api=base_api,
@@ -1418,7 +1447,7 @@ async def _legado_search_response(
         )
     except Exception:
         logger.exception("Reading third-party search failed")
-        return _legado_search_payload(
+        return _payload(
             keyword=keyword,
             page=page,
             base_api=base_api,
@@ -1432,9 +1461,11 @@ async def _legado_search_response(
 
 @router.get("/legado/search/{job_id}")
 @public_router.get("/legado/search/{job_id}")
-async def get_legado_search_status(request: Request, job_id: str) -> dict:
+async def get_legado_search_status(request: Request, job_id: str, media: str = "") -> dict:
     user = auth_service.require_reading_user(request, touch=False)
-    _reject_legado_query_anomalies(request, set())
+    _reject_legado_query_anomalies(request, {"media"})
+    if media not in {"", "audio"}:
+        raise HTTPException(status_code=422, detail="media 无效")
     job_id = _validated_legado_identifier(job_id, field="jobId")
     with reading_access_limiter.guard(user.user_id, "search"):
         if not _owns_legado_search(job_id, user.user_id):
@@ -1455,6 +1486,7 @@ async def get_legado_search_status(request: Request, job_id: str) -> dict:
             user_id=user.user_id,
             allowed_source_ids=source_ids,
             snapshot=snapshot,
+            media=media or None,
         )
 
 
@@ -1469,19 +1501,26 @@ async def cancel_legado_search(request: Request, job_id: str) -> dict:
 
 @router.get("/legado/explore")
 @public_router.get("/legado/explore")
-async def legado_explore(request: Request, sourceId: str = "", groupId: str = "", page: str = "1") -> dict:
+async def legado_explore(
+    request: Request, sourceId: str = "", groupId: str = "", page: str = "1", media: str = ""
+) -> dict:
     user = auth_service.require_reading_user(request, touch=False)
-    _reject_legado_query_anomalies(request, {"sourceId", "groupId", "page"})
+    _reject_legado_query_anomalies(request, {"sourceId", "groupId", "page", "media"})
     source_id = _validated_legado_identifier(sourceId, field="sourceId", allow_empty=True)
     group_id = _validated_legado_text(groupId, field="groupId", max_length=128)
     parsed_page = _legado_query_int(page, field="page", minimum=1, maximum=1000)
+    if media not in {"", "audio"}:
+        raise HTTPException(status_code=422, detail="media 无效")
     with reading_access_limiter.guard(user.user_id, "search"):
         base_api = get_public_base_url(request)
         published = library_books_service.page_published_books(page=parsed_page, page_size=20)
-        items = [
-            library_books_service.build_search_injected_item(book, base_api=base_api)
-            for book in published["items"]
-        ]
+        items = _filter_items_for_media(
+            [
+                library_books_service.build_search_injected_item(book, base_api=base_api)
+                for book in published["items"]
+            ],
+            media or None,
+        )
         return {
             "implemented": True,
             "sourceId": source_id,

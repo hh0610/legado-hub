@@ -88,6 +88,12 @@ class PluginLoader:
                         f"Plugin {metadata.id} declares capability '{cap}' but Source has no async method '{method_name}'"
                     )
 
+        for action in sorted(metadata.ui_actions()):
+            if not callable(getattr(source_instance, action, None)):
+                raise PluginValidationError(
+                    f"Plugin {metadata.id} ui references action '{action}' but Source has no callable method '{action}'"
+                )
+
         return LoadedPlugin(
             metadata=metadata,
             module=module,

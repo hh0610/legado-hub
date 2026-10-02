@@ -86,3 +86,4 @@ dev-assets/tests/*
 !dev-assets/tests/test_user_subscriptions.py
 !dev-assets/tests/test_manual_candidate_selection.py
 !dev-assets/tests/test_media_support.py
+!dev-assets/tests/test_plugin_ui.py

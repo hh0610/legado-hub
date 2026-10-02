@@ -8,12 +8,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SourceListTable } from "@/components/sources/SourceListTable"
+import { PluginSettingsDialog } from "@/components/sources/PluginSettingsDialog"
 import { OfficialSourcesPage } from "./OfficialSourcesPage"
 
 export function Plugins() {
   const queryClient = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [settingsTarget, setSettingsTarget] = useState<any | null>(null)
   const activeTab: "thirdparty" | "official" = searchParams.get("tab") === "official" ? "official" : "thirdparty"
 
   const { data, isLoading, error: pluginsError, refetch: refetchPlugins } = useQuery({ queryKey: ["plugins"], queryFn: api.plugins })
@@ -155,6 +157,7 @@ export function Plugins() {
         selectionDisabled={batchEnableMutation.isPending}
         onToggleSelectAll={toggleSelectAll}
         onToggleSelected={handleRowCheck}
+        onOpenSettings={(source) => setSettingsTarget(source)}
         testId="thirdparty-sources-table-boundary"
         toolbar={(
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -167,6 +170,12 @@ export function Plugins() {
       />
       </div>
       )}
+      <PluginSettingsDialog
+        pluginId={settingsTarget?.pluginId || null}
+        pluginName={settingsTarget?.name || ""}
+        open={!!settingsTarget}
+        onOpenChange={(open) => { if (!open) setSettingsTarget(null) }}
+      />
     </div>
   )
 }

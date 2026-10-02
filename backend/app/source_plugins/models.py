@@ -5,8 +5,13 @@ Follows docs/architecture/source-plugin-contract.md exactly.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
+
+UI_ITEM_TYPES = {"button", "toggle", "text", "number", "color", "select", "hint"}
+_UI_ACTION_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
+_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 @dataclass
@@ -36,6 +41,7 @@ class PluginMetadata:
     access_strategy: dict = field(default_factory=dict)
     search_provider: dict = field(default_factory=dict)
     ad_patterns: list[str] = field(default_factory=list)
+    ui: list[dict] = field(default_factory=list)
 
     CONTENT_KINDS = {"text", "audio", "video"}
 
@@ -66,7 +72,50 @@ class PluginMetadata:
             access_strategy=data.get("accessStrategy", {}),
             search_provider=data.get("searchProvider", {}),
             ad_patterns=data.get("adPatterns", []) or [],
+            ui=cls._normalize_ui(data.get("ui")),
         )
+
+    @staticmethod
+    def _normalize_ui(raw: Any) -> list[dict]:
+        """Accept groups list or a flat item list; keep only known fields."""
+        if not isinstance(raw, list):
+            return []
+        groups: list[dict] = []
+        for entry in raw:
+            if not isinstance(entry, dict):
+                continue
+            if "items" not in entry:
+                # Flat item shorthand → single anonymous group.
+                entry = {"items": [entry]}
+            items = entry.get("items")
+            if not isinstance(items, list):
+                continue
+            normalized_items = []
+            for item in items:
+                if isinstance(item, dict):
+                    normalized_items.append(
+                        {
+                            "type": str(item.get("type", "") or ""),
+                            "id": str(item.get("id", "") or ""),
+                            "label": str(item.get("label", "") or ""),
+                            "action": str(item.get("action", "") or ""),
+                            "help": str(item.get("help", "") or ""),
+                            "placeholder": str(item.get("placeholder", "") or ""),
+                            "default": item.get("default"),
+                            "choices": [str(c) for c in item.get("choices", []) or []]
+                            if isinstance(item.get("choices", []), list)
+                            else [],
+                        }
+                    )
+            groups.append(
+                {
+                    "id": str(entry.get("id", "") or ""),
+                    "title": str(entry.get("title", "") or ""),
+                    "description": str(entry.get("description", "") or ""),
+                    "items": normalized_items,
+                }
+            )
+        return groups
 
     def validate(self) -> list[str]:
         errors: list[str] = []
@@ -142,7 +191,69 @@ class PluginMetadata:
             role = profile.get("role", "mirror")
             if role not in {"mirror", "mobile", "desktop", "api", "legacy"}:
                 errors.append(f"invalid domainProfiles[].role: {role}")
+        errors.extend(self._validate_ui())
         return errors
+
+    def _validate_ui(self) -> list[str]:
+        errors: list[str] = []
+        seen_ids: set[str] = set()
+        for group_index, group in enumerate(self.ui):
+            prefix = f"ui[{group_index}]"
+            for item_index, item in enumerate(group.get("items", [])):
+                where = f"{prefix}.items[{item_index}]"
+                item_type = str(item.get("type", "") or "")
+                if item_type not in UI_ITEM_TYPES:
+                    errors.append(f"{where}: invalid type {item_type!r}")
+                    continue
+                if item_type == "hint":
+                    continue
+                item_id = str(item.get("id", "") or "")
+                if not item_id:
+                    errors.append(f"{where}: id is required")
+                elif item_id in seen_ids:
+                    errors.append(f"{where}: duplicate id {item_id!r}")
+                else:
+                    seen_ids.add(item_id)
+                if not str(item.get("label", "") or ""):
+                    errors.append(f"{where}: label is required")
+                default = item.get("default")
+                if item_type == "button":
+                    action = str(item.get("action", "") or "")
+                    if not _UI_ACTION_RE.match(action):
+                        errors.append(f"{where}: button needs a valid action method name")
+                elif item_type == "select":
+                    if not item.get("choices"):
+                        errors.append(f"{where}: select requires non-empty choices")
+                    elif default is not None and str(default) not in item["choices"]:
+                        errors.append(f"{where}: default must be one of choices")
+                elif item_type == "toggle" and default is not None and not isinstance(default, bool):
+                    errors.append(f"{where}: toggle default must be a boolean")
+                elif item_type == "number" and default is not None and (isinstance(default, bool) or not isinstance(default, (int, float))):
+                    errors.append(f"{where}: number default must be numeric")
+                elif item_type == "color":
+                    if default is not None and not _COLOR_RE.match(str(default)):
+                        errors.append(f"{where}: color default must be #RRGGBB")
+                elif item_type == "text" and default is not None and not isinstance(default, str):
+                    errors.append(f"{where}: text default must be a string")
+        return errors
+
+    def ui_actions(self) -> set[str]:
+        """Action method names referenced by ui buttons."""
+        return {
+            str(item.get("action", ""))
+            for group in self.ui
+            for item in group.get("items", [])
+            if str(item.get("type", "")) == "button" and str(item.get("action", ""))
+        }
+
+    def ui_setting_items(self) -> list[dict]:
+        """Flat list of ui items that hold a persisted value (no buttons/hints)."""
+        return [
+            dict(item)
+            for group in self.ui
+            for item in group.get("items", [])
+            if str(item.get("type", "")) not in {"button", "hint"} and str(item.get("id", ""))
+        ]
 
     def access_mode(self, stage: str) -> str:
         """Return the configured runtime access strategy for a lifecycle stage."""

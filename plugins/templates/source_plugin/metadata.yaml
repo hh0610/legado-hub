@@ -25,6 +25,14 @@ content:
 tags:
   - html
 enabled: true
+# ui（可选）：声明式源设置，控制台「源设置」自动渲染，值经 ctx.settings 注入。
+# 完整规范见 docs/architecture/source-plugin-contract.md 的 `ui` 一节。
+# ui:
+#   - title: 站点设置
+#     items:
+#       - { type: text,   id: api_key, label: API 密钥, help: 可选 }
+#       - { type: toggle, id: verbose, label: 详细日志, default: false }
+#       - { type: button, id: status,  label: 查看状态, action: ui_status }
 sourceSeed:
   type: manual
   upstreamId: example.com

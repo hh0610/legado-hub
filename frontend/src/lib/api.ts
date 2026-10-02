@@ -272,6 +272,17 @@ export const api = {
   pingAllPlugins: (pluginIds?: string[]): Promise<any> =>
     fetchJson("/plugins/ping", { method: "POST", body: JSON.stringify({ pluginIds }) }),
   pluginAuthCheck: (id: string): Promise<any> => fetchJson(`/plugins/${id}/auth/check`, { method: "POST" }),
+  pluginUi: (id: string): Promise<any> => fetchJson(`/plugins/${encodeURIComponent(id)}/ui`),
+  savePluginUi: (id: string, values: Record<string, unknown>): Promise<any> =>
+    fetchJson(`/plugins/${encodeURIComponent(id)}/ui`, {
+      method: "PUT",
+      body: JSON.stringify({ values }),
+    }),
+  runPluginUiAction: (id: string, action: string, input?: Record<string, unknown>): Promise<any> =>
+    fetchJson(`/plugins/${encodeURIComponent(id)}/ui/actions/${encodeURIComponent(action)}`, {
+      method: "POST",
+      body: JSON.stringify(input || {}),
+    }),
   pluginCookiesClear: (id: string): Promise<any> => fetchJson(`/plugins/${id}/cookies/clear`, { method: "POST" }),
   startLoginBrowser: (id: string): Promise<any> => fetchJson(`/plugins/${id}/login-browser`, { method: "POST" }),
   getLoginBrowserStatus: (id: string): Promise<any> => fetchJson(`/plugins/${id}/login-browser/status`),

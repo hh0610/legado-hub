@@ -100,6 +100,9 @@ def validate_plugin(plugin_dir: Path) -> list[str]:
         method = getattr(source_obj, method_name, None)
         if not callable(method):
             errors.append(f"Source missing method for capability: {cap}")
+    for action in sorted(metadata.ui_actions()):
+        if not callable(getattr(source_obj, action, None)):
+            errors.append(f"ui references action '{action}' but Source has no callable method '{action}'")
 
     try:
         smoke_dir = _smoke_dir(plugin_dir)

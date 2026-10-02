@@ -7,7 +7,7 @@ from pathlib import Path
 
 from app.config import DATA_DIR, DB_PATH
 
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS schema_meta (
@@ -297,6 +297,14 @@ CREATE TABLE IF NOT EXISTS aggregate_book_tasks (
     archived_at TEXT,
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS plugin_settings (
+    plugin_id TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (plugin_id, key)
 );
 
 CREATE TABLE IF NOT EXISTS user_book_subscriptions (
@@ -659,6 +667,11 @@ def _migrate_v13_to_v14(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v14_to_v15(conn: sqlite3.Connection) -> None:
+    """v15 adds plugin_settings (created by SCHEMA_SQL); no data migration needed."""
+    return None
+
+
 def initialize_database(db_path: Path | None = None) -> str:
     path = db_path or DB_PATH
     ensure_data_dir()
@@ -682,6 +695,8 @@ def initialize_database(db_path: Path | None = None) -> str:
             _migrate_v12_to_v13(conn)
         if current_version < 14:
             _migrate_v13_to_v14(conn)
+        if current_version < 15:
+            _migrate_v14_to_v15(conn)
         conn.execute(
             "INSERT OR REPLACE INTO schema_meta (key, value) VALUES (?, ?)",
             ("version", str(SCHEMA_VERSION)),

@@ -308,7 +308,12 @@ export function SubscriptionDiscoveryPage({ mode = "user" }: SubscriptionDiscove
       )}
 
       {!isSearching && jobData?.status === "completed" && cards.length === 0 && (
-        <div className="py-12 text-center text-sm text-slate-500">未找到匹配的书籍。</div>
+        <div className="py-12 text-center text-sm text-slate-500">
+          <p>未找到匹配的书籍。</p>
+          {jobData?.message ? (
+            <p className="mt-2 text-xs text-amber-600">{jobData.message}</p>
+          ) : null}
+        </div>
       )}
 
       <Dialog open={!!selectedCard} onOpenChange={(open) => { if (!open) setSelectedCard(null) }}>

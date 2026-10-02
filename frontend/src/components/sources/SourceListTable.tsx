@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Settings2 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -53,6 +53,7 @@ interface SourceListTableProps {
   extraHeaders?: ReactNode
   extraColumnCount?: number
   renderExtraCells?: (item: any) => ReactNode
+  onOpenSettings?: (item: any) => void
   tableClassName?: string
   testId?: string
 }
@@ -73,6 +74,7 @@ export function SourceListTable({
   extraHeaders,
   extraColumnCount = 0,
   renderExtraCells,
+  onOpenSettings,
   tableClassName = "min-w-[900px]",
   testId,
 }: SourceListTableProps) {
@@ -141,6 +143,17 @@ export function SourceListTable({
                               <span className={`rounded px-1.5 py-0.5 text-[9px] font-medium ${MEDIA_KIND_LABELS[sourceMediaKind(source)].className}`}>
                                 {MEDIA_KIND_LABELS[sourceMediaKind(source)].label}
                               </span>
+                            )}
+                            {onOpenSettings && (
+                              <button
+                                type="button"
+                                aria-label={`打开 ${source.name} 源设置`}
+                                title="源设置"
+                                className="ml-0.5 rounded p-0.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                onClick={() => onOpenSettings(source)}
+                              >
+                                <Settings2 className="h-3.5 w-3.5" />
+                              </button>
                             )}
                           </div>
                           <div className="mt-1 space-y-0.5 text-[10px] text-slate-400">

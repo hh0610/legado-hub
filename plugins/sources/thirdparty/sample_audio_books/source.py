@@ -122,7 +122,31 @@ class Source:
                     "extra": {},
                 }
             )
+        # 源设置（控制台「源设置」声明，经 ctx.settings 注入）。
+        max_episodes = self._int_setting(ctx, "max_episodes", 0)
+        if max_episodes > 0:
+            chapters = chapters[:max_episodes]
+        if bool(ctx.settings.get("reverse_order", False)):
+            chapters = list(reversed(chapters))
+            for position, chapter in enumerate(chapters, start=1):
+                chapter["index"] = position
         return chapters
+
+    @staticmethod
+    def _int_setting(ctx, key: str, default: int) -> int:
+        try:
+            value = int(ctx.settings.get(key, default) or 0)
+        except (TypeError, ValueError):
+            return default
+        return value
+
+    async def ui_check_settings(self, ctx, payload: dict) -> dict:
+        """ui 动作示例：汇报当前生效的源设置。"""
+        values = payload.get("values", {}) if isinstance(payload, dict) else {}
+        return {
+            "ok": True,
+            "message": f"目录设置生效：max_episodes={values.get('max_episodes', 0)}（0=不限）, reverse_order={bool(values.get('reverse_order'))}",
+        }
 
     async def chapter(self, ctx, chapter_url: str) -> dict:
         book_id, episode = self._episode_from_url(chapter_url)

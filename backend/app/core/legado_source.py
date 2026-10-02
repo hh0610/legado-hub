@@ -25,17 +25,19 @@ from app.core.public_security import (
 # Release discipline (do not mix):
 # - BETA / daily rule tests: ONLY bump _READER_RULE_RELEASED_AT_MS to wall-clock
 #   now (ms). Keep _READER_RULE_VERSION unchanged so the name does not churn.
-# - FORMAL app release (git tag vX.Y.Z): bump BOTH — version (shown in name /
-#   comment / jsLib) and RELEASED_AT_MS.
-_READER_RULE_VERSION = "0.0.31"
-# Last beta marker: header no-ajax so login sheet can open (ms). Bump this alone for tests.
-_READER_RULE_RELEASED_AT_MS = 1789453118750
+# Beta / daily rule ships bump RELEASED_AT_MS only; formal tags bump both.
+_READER_RULE_VERSION = "0.0.32"
+# Last beta marker: audio sibling source (bookSourceType 1) + media filtering (ms).
+_READER_RULE_RELEASED_AT_MS = 1790935800000
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
 _LAN_BOOK_SOURCE_URL = "LegadoHub-LAN"
 _LAN_NAME_MARK = "·内网"
 _LAN_GROUP_MARK = "内网"
+
+_AUDIO_BOOK_SOURCE_URL = "LegadoHub-Audio"
+_AUDIO_LAN_BOOK_SOURCE_URL = "LegadoHub-LAN-Audio"
 
 
 def _reader_rule_version_stamp(version: str = _READER_RULE_VERSION) -> int:
@@ -204,9 +206,10 @@ def _request_header_rule(base_api: str = "", *, access_code: str | None = None) 
     )
 
 
-def _search_url_rule(base_api: str) -> str:
+def _search_url_rule(base_api: str, *, media: str = "") -> str:
     """Search entry: resolve token (bound code / stored header) then hit API."""
     base = json.dumps(str(base_api or "").rstrip("/"), ensure_ascii=False)
+    media_param = "&media=audio" if media == "audio" else ""
     # key/page are injected by AnalyzeUrl for searchUrl @js.
     return (
         "@js:\n"
@@ -216,13 +219,15 @@ def _search_url_rule(base_api: str) -> str:
         "var _page = \"1\";\n"
         "try { _key = String(key != null ? key : \"\"); } catch (e1) { _key = \"\"; }\n"
         "try { _page = String(page != null ? page : \"1\"); } catch (e2) { _page = \"1\"; }\n"
-        "_base + \"/api/subscribe/legado/search?keyword=\" + encodeURIComponent(_key) + \"&page=\" + encodeURIComponent(_page);"
+        "_base + \"/api/subscribe/legado/search?keyword=\" + encodeURIComponent(_key) + \"&page=\" + encodeURIComponent(_page)"
+        + (f" + \"{media_param}\"" if media_param else "") + ";"
     )
 
 
-def _explore_url_rule(base_api: str) -> str:
+def _explore_url_rule(base_api: str, *, media: str = "") -> str:
     """Explore entry with pre-request token resolve (same as search)."""
     base = str(base_api or "").rstrip("/")
+    media_param = "&media=audio" if media == "audio" else ""
     # Keep group title prefix; URL body is @js so token is attached before GET.
     return (
         "已发布书库::@js:\n"
@@ -232,7 +237,8 @@ def _explore_url_rule(base_api: str) -> str:
         + ";\n"
         "var _page = \"1\";\n"
         "try { _page = String(page != null ? page : \"1\"); } catch (e1) { _page = \"1\"; }\n"
-        "_base + \"/api/subscribe/legado/explore?page=\" + encodeURIComponent(_page);"
+        "_base + \"/api/subscribe/legado/explore?page=\" + encodeURIComponent(_page)"
+        + (f" + \"{media_param}\"" if media_param else "") + ";"
     )
 
 
@@ -698,18 +704,88 @@ def _source_identity_for_base(base_api: str) -> tuple[str, str, str, bool]:
     return _LAN_BOOK_SOURCE_URL, display, ",".join(parts), True
 
 
+def _audio_source_identity_for_base(base_api: str) -> tuple[str, str, str, bool]:
+    """Sibling audio source identity (bookSourceType 1) for the same base."""
+    lan = is_lan_reading_base(base_api)
+    if not lan:
+        return _AUDIO_BOOK_SOURCE_URL, "LegadoHub有声", "有声,LegadoHub", False
+    return (
+        _AUDIO_LAN_BOOK_SOURCE_URL,
+        f"LegadoHub有声{_LAN_NAME_MARK}",
+        f"有声,LegadoHub,{_LAN_GROUP_MARK}",
+        True,
+    )
+
+
+def _content_rule(media_kind: str) -> str:
+    """Chapter content rule shared by text/audio sources.
+
+    Both fetch the chapter payload through legadoHubAjax (same Bearer as
+    search/toc). The audio variant returns the signed media URL so the
+    Reading app player (bookSourceType 1) plays it directly.
+    """
+    fetch_lines = (
+        '@js:\n'
+        'var payload = String(result || "");\n'
+        'var contentUrl = "";\n'
+        'try {\n'
+        '  contentUrl = String(java.hexDecodeToString(payload) || "").trim();\n'
+        '  try { contentUrl = legadoHubRewriteApiUrl(contentUrl); } catch (e0) {}\n'
+        '  if (/^https?:\\/\\//i.test(contentUrl)) {\n'
+        '    try {\n'
+        '      payload = String(legadoHubAjax(contentUrl) || "");\n'
+        '    } catch (eAjax) {\n'
+        '      payload = String(java.ajax(contentUrl) || "");\n'
+        '    }\n'
+        '  }\n'
+        '} catch (e) {}\n'
+        'var text = payload;\n'
+        'var chapterPayload = null;\n'
+        'try {\n'
+        '  chapterPayload = JSON.parse(payload);\n'
+        '  if (typeof chapterPayload.content === "string") text = chapterPayload.content;\n'
+        '  else if (typeof chapterPayload.detail === "string") text = chapterPayload.detail;\n'
+        '  else if (chapterPayload.detail && chapterPayload.detail.message) text = chapterPayload.detail.message;\n'
+        '} catch (e) {}\n'
+    )
+    if media_kind == "audio":
+        return (
+            fetch_lines
+            + 'var media = chapterPayload ? String(chapterPayload.mediaUrl || "") : "";\n'
+            'if (!media) {\n'
+            '  media = "该章节暂无可播放音频（可能仍在处理或为付费内容），请稍后重试。";\n'
+            '}\n'
+            'result = media;'
+        )
+    return (
+        fetch_lines
+        + 'text = String(text || "").replace(/\\r\\n/g, "\\n").replace(/\\r/g, "\\n");\n'
+        'result = /<(?:p|div)\\b/i.test(text) ? text : text.replace(/\\n\\n+/g, "<br><br>").replace(/\\n/g, "<br>");'
+    )
+
+
 def _build_source(
     base_api: str | None = None,
     *,
     access_code: str | None = None,
+    media_kind: str = "text",
 ) -> dict:
     base_api = normalize_public_base_url(base_api or get_public_base_url())
-    book_source_url, name, group, is_lan = _source_identity_for_base(base_api)
     app_config = AppConfig.get()
     chapter_comment = app_config.chapter_comment
     bound = bool(str(access_code or "").strip())
 
-    explore_url = _explore_url_rule(base_api)
+    if media_kind == "audio":
+        book_source_url, name, group, is_lan = _audio_source_identity_for_base(base_api)
+        book_source_type = 1
+        explore_url = _explore_url_rule(base_api, media="audio")
+        search_url = _search_url_rule(base_api, media="audio")
+    else:
+        book_source_url, name, group, is_lan = _source_identity_for_base(base_api)
+        book_source_type = 0
+        explore_url = _explore_url_rule(base_api)
+        search_url = _search_url_rule(base_api)
+
     network_note = (
         "本条为内网书源（bookSourceUrl=LegadoHub-LAN），可与公网书源并存；"
         if is_lan
@@ -720,12 +796,17 @@ def _build_source(
         if bound
         else "请使用管理员发放的专属书源链接导入。"
     )
+    media_note = (
+        "本条为有声源（bookSourceType=1），仅包含有声书，正文规则返回音频直链由阅读 App 播放；"
+        if media_kind == "audio"
+        else "本条为文字源，仅包含文字书；有声书请导入配套的 LegadoHub有声 源，视频书请在 Web 端观看；"
+    )
     return {
         "bookSourceName": f"{name}({_READER_RULE_VERSION})",
         "bookSourceGroup": group,
         "bookSourceUrl": book_source_url,
         "lastUpdateTime": _reader_rule_last_update_time(app_config),
-        "bookSourceType": 0,
+        "bookSourceType": book_source_type,
         "enabled": True,
         "enabledCookieJar": True,
         "enabledExplore": True,
@@ -736,6 +817,7 @@ def _build_source(
         "loginCheckJs": _login_check_script(),
         "bookSourceComment": (
             f"规则版本 {_READER_RULE_VERSION}。"
+            f"{media_note}"
             f"{network_note}"
             f"{bind_note}"
             "搜索同时显示已发布共享书和启用的第三方书源；官方源仍只用于后台聚合，"
@@ -743,7 +825,7 @@ def _build_source(
         ),
         # Progressive: page1 library + short third-party batch; page2+ continue
         # the same server job for new remotes (see subscribe._legado_search_response).
-        "searchUrl": _search_url_rule(base_api),
+        "searchUrl": search_url,
         # Slightly above page2 short-wait (20s) so follow-up search pages can finish.
         "respondTime": 25000,
         "exploreUrl": explore_url,
@@ -801,30 +883,7 @@ def _build_source(
         "ruleContent": {
             # Must use legadoHubAjax (jsLib) so chapter fetch carries the same
             # Bearer as search/toc. Plain java.ajax(contentUrl) skipped source header.
-            "content": '@js:\n'
-            'var payload = String(result || "");\n'
-            'var contentUrl = "";\n'
-            'try {\n'
-            '  contentUrl = String(java.hexDecodeToString(payload) || "").trim();\n'
-            '  try { contentUrl = legadoHubRewriteApiUrl(contentUrl); } catch (e0) {}\n'
-            '  if (/^https?:\\/\\//i.test(contentUrl)) {\n'
-            '    try {\n'
-            '      payload = String(legadoHubAjax(contentUrl) || "");\n'
-            '    } catch (eAjax) {\n'
-            '      payload = String(java.ajax(contentUrl) || "");\n'
-            '    }\n'
-            '  }\n'
-            '} catch (e) {}\n'
-            'var text = payload;\n'
-            'var chapterPayload = null;\n'
-            'try {\n'
-            '  chapterPayload = JSON.parse(payload);\n'
-            '  if (typeof chapterPayload.content === "string") text = chapterPayload.content;\n'
-            '  else if (typeof chapterPayload.detail === "string") text = chapterPayload.detail;\n'
-            '  else if (chapterPayload.detail && chapterPayload.detail.message) text = chapterPayload.detail.message;\n'
-            '} catch (e) {}\n'
-            'text = String(text || "").replace(/\\r\\n/g, "\\n").replace(/\\r/g, "\\n");\n'
-            'result = /<(?:p|div)\\b/i.test(text) ? text : text.replace(/\\n\\n+/g, "<br><br>").replace(/\\n/g, "<br>");',
+            "content": _content_rule(media_kind),
             "title": "$.title",
             "chapterComment": {
                 "protocolVersion": 2,
@@ -863,7 +922,15 @@ def generate_legado_source(
     *,
     access_code: str | None = None,
 ) -> list[dict]:
-    return [_build_source(base_api, access_code=access_code)]
+    """Two sibling sources: text (bookSourceType 0) and audio (bookSourceType 1).
+
+    Video books are not emitted to Reading — the app has no video player; they
+    stay playable in the web console.
+    """
+    return [
+        _build_source(base_api, access_code=access_code, media_kind="text"),
+        _build_source(base_api, access_code=access_code, media_kind="audio"),
+    ]
 
 
 def write_legado_source() -> str:
