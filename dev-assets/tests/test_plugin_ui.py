@@ -54,6 +54,25 @@ def test_ui_valid_schema_normalizes():
     assert metadata.ui[0]["items"][0]["default"] == "abc"
 
 
+def test_ui_allowed_for_official_sources():
+    """官方/授权书源同样可以声明 ui（2026-10 起放开，无第三方限制）。"""
+    metadata = _metadata(
+        [
+            {
+                "title": "站点设置",
+                "items": [
+                    {"type": "toggle", "id": "verbose", "label": "详细日志", "default": False},
+                    {"type": "button", "id": "status", "label": "查看状态", "action": "ui_status"},
+                ],
+            }
+        ]
+    )
+    metadata.tags = ["official"]
+    assert metadata.validate() == []
+    assert metadata.is_official_source() is True
+    assert metadata.ui_actions() == {"ui_status"}
+
+
 def test_ui_flat_item_shorthand_becomes_group():
     metadata = _metadata([{"type": "toggle", "id": "v", "label": "开关", "default": False}])
     assert metadata.validate() == []

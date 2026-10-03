@@ -192,8 +192,6 @@ class PluginMetadata:
             if role not in {"mirror", "mobile", "desktop", "api", "legacy"}:
                 errors.append(f"invalid domainProfiles[].role: {role}")
         errors.extend(self._validate_ui())
-        if self.ui and self.is_official_source():
-            errors.append("ui is only allowed for third-party sources, not official ones")
         return errors
 
     def _validate_ui(self) -> list[str]:
