@@ -788,6 +788,34 @@ class Catalog:
 
         return await chapter_reviews(self.scheduler, chapter_id)
 
+    async def book_reviews(self, book_id: str, user_agent: str = "") -> dict:
+        """Book-level reviews (书评) via the source plugin's book_reviews capability.
+
+        Aggregate books dispatch to their primary source; third-party books go
+        straight to the owning plugin.
+        """
+        try:
+            source_id, book_url = decode_book_id(book_id)
+        except Exception:
+            return {"implemented": True, "summary": {}, "items": [], "debug": {"error": "invalid book_id format"}}
+
+        if source_id == VIRTUAL_SOURCE_ID:
+            try:
+                payload = unpack_aggregate_book_url(book_url)
+                if payload.get("library") and payload.get("aggregateBookId"):
+                    payload = library_books_service.load_payload(payload.get("aggregateBookId", ""))
+                primary_source_id = str(payload.get("primarySourceId", "") or "")
+                primary_book_url = str(payload.get("primaryBookUrl", "") or "")
+                if not primary_source_id or not primary_book_url:
+                    return {"implemented": True, "summary": {}, "items": [], "debug": {"error": "aggregate book has no primary source"}}
+                result = await self.scheduler.book_reviews(primary_source_id, primary_book_url)
+                result["debug"] = {**result.get("debug", {}), "aggregate": True, "primarySourceId": primary_source_id}
+                return result
+            except Exception as exc:
+                return {"implemented": True, "summary": {}, "items": [], "debug": {"error": str(exc)}}
+
+        return await self.scheduler.book_reviews(source_id, book_url)
+
     async def page_hot_reviews(
         self,
         chapter_id: str,

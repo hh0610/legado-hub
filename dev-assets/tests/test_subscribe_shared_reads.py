@@ -220,7 +220,7 @@ def test_legado_source_update_marker_advances_with_comment_settings(tmp_path, mo
 
     assert after["lastUpdateTime"] == next_update_time
     assert after["lastUpdateTime"] > before["lastUpdateTime"]
-    assert after["ruleContent"]["chapterComment"]["display"]["segment"]["enabled"] is False
+    assert "chapterComment" not in after["ruleContent"]
 
 
 @pytest.mark.parametrize("page", [True, "invalid", 1.5, 0, -1, 1001])
@@ -1221,46 +1221,15 @@ def test_legado_reads_only_published_shared_content_without_db_side_effects(
     assert "function legadoHubRewriteApiUrl" in source["jsLib"]
     assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleContent"]["content"]
     assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleToc"]["chapterUrl"]
-    chapter_comment = source["ruleContent"]["chapterComment"]
-    assert chapter_comment["protocolVersion"] == 2
-    assert chapter_comment["display"]["segment"]["enabled"] is True
-    assert chapter_comment["display"]["segment"]["preset"] == "count"
-    assert chapter_comment["display"]["page"]["enabled"] is True
-    assert chapter_comment["display"]["chapter"]["enabled"] is True
-    assert "matchedParagraphIndex" in chapter_comment["data"]
-    assert "matchedParagraphCount" in chapter_comment["data"]
-    assert "pageEligible: true" in chapter_comment["data"]
-    assert "chapterEndHot" in chapter_comment["data"]
-    assert "chapterHot.concat(chapterEnd)" in chapter_comment["data"]
-    assert "authorReviews" in chapter_comment["data"]
-    assert "badge: '作家说'" in chapter_comment["data"]
-    assert "author: author" in chapter_comment["data"]
-    assert "version: 2" in chapter_comment["data"]
-    assert "version: 1" not in chapter_comment["data"]
-    assert "preview:" not in chapter_comment["data"]
-    assert "previews: chapterPreviews" in chapter_comment["data"]
-    assert "chapterPreviews.length >= 3" in chapter_comment["data"]
-    assert "var key = '$' + String" in chapter_comment["data"]
-    assert "legadoHubChapterEndReviewCount(reviews)" in chapter_comment["data"]
-    assert chapter_comment["url"].startswith("@js:")
-    assert chapter_comment["data"].startswith("@js:")
-    assert chapter_comment["action"].startswith("@js:")
-    assert "commentScope === 'page'" in chapter_comment["action"]
-    assert "commentScope === 'segment'" in chapter_comment["action"]
-    assert "commentScope === 'chapter'" in chapter_comment["action"]
-    assert "chapter.getAbsoluteURL" in chapter_comment["action"]
-    assert "typeof baseCandidate !== 'function'" in chapter_comment["action"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in chapter_comment["action"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in chapter_comment["url"]
-    assert "sourceWebView" in chapter_comment["action"]
-    assert "paragraphIds=" in chapter_comment["action"]
-    assert "Authorization" not in chapter_comment["action"]
-    assert "legadoHubPageHotReviewEntry" not in source["jsLib"]
-    assert "legadoHubReviewTheme" not in source["jsLib"]
-    assert "legadoHubOpenReviews" not in source["jsLib"]
-    assert "legadohub_session" not in source["jsLib"]
-    assert "heightPercentage: 0.78" not in source["jsLib"]
-    assert "heightRatio: 0.78" in chapter_comment["action"]
+    # legado-X chapterComment 协议已移除；评论经正文气泡 + 章末卡片（showBrowser）投递。
+    assert "chapterComment" not in source["ruleContent"]
+    assert "reviewBubbles=1" in source["ruleContent"]["content"]
+    assert "fmt === \"audio\"" in source["ruleContent"]["content"]
+    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleContent"]["content"]
+    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleToc"]["chapterUrl"]
+    assert "function legadoHubChapterEndReviewCount" in source["jsLib"]
+    assert "function legadoHubSourceBase" in source["jsLib"]
+    assert "legadoHubRewriteApiUrl" in source["jsLib"]
     assert "ruleReview" not in source
     assert "LH1." not in json.dumps(source, ensure_ascii=False)
 

@@ -519,10 +519,12 @@ def test_personal_legado_source_embeds_bound_access_code() -> None:
     )
     assert response.status_code == 200
     sources = response.json()
-    # Dual-source export: text (bookSourceType 0) + audio sibling (1), same code.
-    assert len(sources) == 2
-    assert {s["bookSourceType"] for s in sources} == {0, 1}
+    # Unified source: one entry carrying text/audio/video books (type 0).
+    assert len(sources) == 1
     source = sources[0]
+    assert source["bookSourceType"] == 0
+    assert "book.type = 4" in source["ruleBookInfo"]["init"]
+    assert 'fmt === "audio"' in source["ruleContent"]["content"]
     code_literal = json.dumps(created["accessCode"], ensure_ascii=False)
     assert f"var LEGADOHUB_ACCESS_CODE = {code_literal}" in source["loginUrl"]
     assert f"var LEGADOHUB_ACCESS_CODE = {code_literal}" in source["jsLib"]

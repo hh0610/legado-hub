@@ -74,7 +74,12 @@ def test_session_fixation_replay_and_revocation() -> None:
     assert replay.get("/api/auth/access/me", headers=headers).status_code == 401
 
 
-def test_reading_rate_and_concurrency_limits_are_bounded() -> None:
+def test_reading_rate_and_concurrency_limits_are_bounded(monkeypatch) -> None:
+    # Live third-party batches would make this rate-limit probe depend on
+    # upstream sites; the limits under test live on the hub side only.
+    from app.api import subscribe as subscribe_api
+
+    monkeypatch.setattr(subscribe_api, "_third_party_search_source_ids", lambda service: [])
     now = [100.0]
     limiter = ReadingAccessLimiter(
         window_seconds=60,
@@ -103,6 +108,9 @@ def test_reading_rate_and_concurrency_limits_are_bounded() -> None:
 
 
 def test_injection_and_amplification_inputs_are_rejected_before_work(monkeypatch) -> None:
+    from app.api import subscribe as subscribe_api
+
+    monkeypatch.setattr(subscribe_api, "_third_party_search_source_ids", lambda service: [])
     token, _ = _bearer_identity()
     client = TestClient(app)
     headers = {"Authorization": f"Bearer {token}"}

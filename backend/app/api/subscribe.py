@@ -397,11 +397,11 @@ def _publicize_search_items(
     return items
 
 
-def _filter_items_for_media(raw_items: list, media: str | None) -> list[dict]:
-    """Reading media filter for search/explore items.
+def _filter_items_for_media(raw_items: list, media: str | None = None) -> list[dict]:
+    """Optional Reading media filter (the unified source passes no media).
 
-    ``None`` (text source default) drops audio/video items — Reading cannot
-    play them. ``"audio"`` keeps audio-only (bookSourceType 1 source).
+    With no ``media`` every item passes: the unified book source handles
+    text/audio/video books in one stream via per-book type flags.
     """
     def _kind(item: dict) -> str:
         kind = str(item.get("contentType", "") or "").strip().lower()
@@ -412,7 +412,7 @@ def _filter_items_for_media(raw_items: list, media: str | None) -> list[dict]:
         return [item for item in items if _kind(item) == "audio"]
     if media == "video":
         return [item for item in items if _kind(item) == "video"]
-    return [item for item in items if _kind(item) not in {"audio", "video"}]
+    return items
 
 
 def _legado_search_payload(
@@ -1189,7 +1189,7 @@ async def legado_search(
         minimum=0,
         maximum=_READING_SEARCH_TIMEOUT_MS,
     )
-    if media not in {"", "audio"}:
+    if media not in {"", "audio", "video"}:
         raise HTTPException(status_code=422, detail="media 无效")
     with reading_access_limiter.guard(user.user_id, "search"):
         return await _legado_search_response(
@@ -1464,7 +1464,7 @@ async def _legado_search_response(
 async def get_legado_search_status(request: Request, job_id: str, media: str = "") -> dict:
     user = auth_service.require_reading_user(request, touch=False)
     _reject_legado_query_anomalies(request, {"media"})
-    if media not in {"", "audio"}:
+    if media not in {"", "audio", "video"}:
         raise HTTPException(status_code=422, detail="media 无效")
     job_id = _validated_legado_identifier(job_id, field="jobId")
     with reading_access_limiter.guard(user.user_id, "search"):
@@ -1509,7 +1509,7 @@ async def legado_explore(
     source_id = _validated_legado_identifier(sourceId, field="sourceId", allow_empty=True)
     group_id = _validated_legado_text(groupId, field="groupId", max_length=128)
     parsed_page = _legado_query_int(page, field="page", minimum=1, maximum=1000)
-    if media not in {"", "audio"}:
+    if media not in {"", "audio", "video"}:
         raise HTTPException(status_code=422, detail="media 无效")
     with reading_access_limiter.guard(user.user_id, "search"):
         base_api = get_public_base_url(request)

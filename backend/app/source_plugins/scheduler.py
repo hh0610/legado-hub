@@ -681,6 +681,32 @@ class PluginScheduler:
         finally:
             await ctx._fetcher.close()
 
+    async def book_reviews(self, source_id: str, book_url: str) -> dict:
+        plugin = self._plugins.get(source_id)
+        if not plugin or "book_reviews" not in plugin.capabilities:
+            return {"implemented": True, "summary": {}, "items": [], "debug": {"error": f"plugin not found or no book_reviews capability: {source_id}"}}
+        ctx = self._make_ctx(source_id)
+        try:
+            raw = await self._call_plugin(
+                plugin,
+                lambda: plugin.source.book_reviews(ctx, book_url),
+                timeout=self.timeout_for_plugin(plugin),
+            )
+            if not isinstance(raw, dict):
+                raw = {}
+            debug = raw.get("debug", {}) if isinstance(raw.get("debug", {}), dict) else {}
+            return {
+                "implemented": True,
+                "summary": raw.get("summary", {}) if isinstance(raw.get("summary", {}), dict) else {},
+                "items": raw.get("items", []) if isinstance(raw.get("items", []), list) else [],
+                "debug": debug,
+            }
+        except Exception as exc:
+            err = self._failure_for_exception(plugin, "book_reviews", exc)
+            return {"implemented": True, "summary": {}, "items": [], "debug": {"error": err}}
+        finally:
+            await ctx._fetcher.close()
+
     async def _review_extension(
         self,
         source_id: str,

@@ -15,6 +15,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from app.services.catalog import Catalog
+from app.services.legado_max_bubbles import decorate_legado_max_content
 from app.services.library_books import format_reading_update_time, library_books_service
 from app.services.aggregate_virtual_source import VIRTUAL_SOURCE_ID
 from app.source_plugins.id_codec import (
@@ -146,6 +147,7 @@ def _public_book_response(
             "coverUrl": _public_text(data.get("coverUrl"), max_length=4096),
             "intro": _public_text(data.get("intro"), max_length=12000),
             "kind": _public_text(data.get("kind"), max_length=500),
+            "contentType": _public_text(data.get("contentType"), max_length=16) or "text",
             "lastChapter": _public_text(data.get("lastChapter"), max_length=500),
             "wordCount": data.get("wordCount", ""),
             "status": _public_text(data.get("status"), max_length=100),
@@ -263,6 +265,34 @@ async def _chapter_reviews(chapter_id: str, *, catalog: Catalog | None = None) -
     reviews = await (catalog or Catalog()).chapter_reviews(chapter_id)
     chapter_review_cache.set(chapter_id, reviews)
     return reviews
+
+
+async def _append_book_reviews_card(
+    content: str,
+    chapter_url: str,
+    *,
+    base_api: str,
+    catalog: Catalog | None = None,
+) -> str:
+    """Append a 书评区 entry card when the book's primary source provides reviews."""
+    from app.services.aggregate_virtual_source import unpack_aggregate_chapter_url
+    from app.services.legado_max_bubbles import link_card
+    from app.services.library_books import make_library_book_id
+
+    payload = unpack_aggregate_chapter_url(chapter_url)
+    aggregate_book_id = str(payload.get("aggregateBookId", "") or "")
+    if not aggregate_book_id:
+        return content
+    payload_book = library_books_service.load_payload(aggregate_book_id) or {}
+    primary_source_id = str(payload_book.get("primarySourceId", "") or "")
+    catalog = catalog or Catalog()
+    plugin = catalog.scheduler._plugins.get(primary_source_id)
+    if plugin is None or "book_reviews" not in plugin.capabilities:
+        return content
+    book_id = make_library_book_id(aggregate_book_id)
+    card_url = f"{base_api}/api/legado/book/{book_id}/reviews/view"
+    card = link_card("书评区", "评分与热门评论", card_url)
+    return content.rstrip() + "\n\n" + card
 
 
 def _purify_chapter_content_for_reading(
@@ -416,9 +446,11 @@ async def get_toc(request: Request, book_id: str) -> dict:
 
 
 @router.get("/chapter/{chapter_id}")
-async def get_chapter(request: Request, chapter_id: str) -> dict:
+async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | None = None) -> dict:
     user = auth_service.require_reading_user(request, touch=False)
-    _reject_query_anomalies(request, {"lane"})
+    _reject_query_anomalies(request, {"lane", "reviewBubbles"})
+    if reviewBubbles not in (None, "1"):
+        raise HTTPException(status_code=422, detail="reviewBubbles 无效")
     chapter_id = _validated_external_id(chapter_id, label="章节")
     source_id, chapter_url = _decode_chapter_identity(chapter_id)
     with reading_access_limiter.guard(user.user_id, "chapter"):
@@ -443,42 +475,54 @@ async def get_chapter(request: Request, chapter_id: str) -> dict:
                 apply_purify=False,
             )
             shared = {**shared, "content": content}
-            return _public_chapter_response(
-                shared,
-                chapter_id=chapter_id,
-                source_id=source_id,
-                base_api=base_api,
+            result = shared
+        else:
+            _require_third_party_plugin(
+                catalog,
+                source_id,
+                "chapter",
+                label="章节",
+                target_url=chapter_url,
             )
-        _require_third_party_plugin(
-            catalog,
-            source_id,
-            "chapter",
-            label="章节",
-            target_url=chapter_url,
-        )
-        result = await catalog.chapter(chapter_id)
-        if str(result.get("format", "") or "") in {"audio", "video"}:
-            return _public_chapter_response(
-                result,
+            result = await catalog.chapter(chapter_id)
+            if str(result.get("format", "") or "") in {"audio", "video"}:
+                return _public_chapter_response(
+                    result,
+                    chapter_id=chapter_id,
+                    source_id=source_id,
+                    base_api=base_api,
+                )
+            content = await _apply_reading_content_gates(
                 chapter_id=chapter_id,
+                content=str(result.get("content", "") or ""),
                 source_id=source_id,
-                base_api=base_api,
+                catalog=catalog,
             )
-        content = await _apply_reading_content_gates(
-            chapter_id=chapter_id,
-            content=str(result.get("content", "") or ""),
-            source_id=source_id,
-            catalog=catalog,
-        )
-        result = {**result, "content": content}
-        return _public_chapter_response(
+            result = {**result, "content": content}
+        response = _public_chapter_response(
             result,
             chapter_id=chapter_id,
             source_id=source_id,
             base_api=base_api,
         )
-
-
+        if reviewBubbles == "1":
+            try:
+                with reading_access_limiter.guard(user.user_id, "reviews"):
+                    reviews = await _chapter_reviews(chapter_id, catalog=catalog)
+                view_url = f"{base_api}/api/legado/chapter/{chapter_id}/reviews/view"
+                response["content"] = decorate_legado_max_content(
+                    response["content"], reviews, view_url=view_url
+                )
+            except Exception:
+                logger.warning("Unable to decorate Legado Max reviews for %s", chapter_id, exc_info=True)
+            if source_id == VIRTUAL_SOURCE_ID:
+                try:
+                    response["content"] = await _append_book_reviews_card(
+                        response["content"], chapter_url, base_api=base_api, catalog=catalog
+                    )
+                except Exception:
+                    logger.warning("Unable to append book reviews card for %s", chapter_id, exc_info=True)
+        return response
 @router.get("/chapter/{chapter_id}/reviews")
 async def get_chapter_reviews(request: Request, chapter_id: str) -> dict:
     user = auth_service.require_reading_user(request, touch=False)
@@ -629,6 +673,72 @@ async def get_chapter_review_view(
                 chapter_detail=chapter_detail,
                 reply_detail=reply_detail,
             ),
+            headers={
+                "X-Frame-Options": "SAMEORIGIN",
+                "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'",
+            },
+        )
+
+@router.get("/book/{book_id}/reviews/view", response_class=HTMLResponse)
+async def get_book_reviews_view(request: Request, book_id: str) -> str:
+    from html import escape as _html_escape
+
+    user = auth_service.require_reading_user(request, touch=False)
+    _reject_query_anomalies(request, set())
+    book_id = _validated_external_id(book_id, label="书籍")
+    with reading_access_limiter.guard(user.user_id, "reviews"):
+        base_api = get_public_base_url(request)
+        catalog = Catalog(base_api=base_api)
+        data = await catalog.book_reviews(book_id)
+        summary = data.get("summary", {}) if isinstance(data.get("summary", {}), dict) else {}
+        items = [item for item in data.get("items", []) if isinstance(item, dict)]
+        rows = []
+        for item in items:
+            name = str(item.get("userName") or "书友")
+            meta_parts = [str(item.get("time") or "")]
+            rating = str(item.get("rating") or "")
+            if rating:
+                meta_parts.append(f"评分 {rating}")
+            likes = str(item.get("likeCount") or "")
+            if likes:
+                meta_parts.append(f"{likes} 赞")
+            reply = str(item.get("replyCount") or "")
+            if reply and reply != "0":
+                meta_parts.append(f"{reply} 回复")
+            content_text = str(item.get("content") or "")
+            rows.append(
+                "<li><div class='who'>" + _html_escape(name) + "<span class='meta'>" + _html_escape(" · ".join(p for p in meta_parts if p)) + "</span></div>"
+                + "<p>" + _html_escape(content_text) + "</p></li>"
+            )
+        score = str(summary.get("score") or "")
+        people = str(summary.get("peopleCount") or "")
+        positive = str(summary.get("positivePercent") or "")
+        head_bits = []
+        if score:
+            head_bits.append(f"<span class='score'>{score}</span>")
+        if people:
+            head_bits.append(f"<span>{_html_escape(people)}</span>")
+        if positive:
+            try:
+                head_bits.append(f"<span>{int(float(positive) * 100)}% 好评</span>")
+            except (TypeError, ValueError):
+                pass
+        head = "".join(head_bits) or "<span>暂无评分</span>"
+        body_rows = "".join(rows) or "<li class='empty'>该书源暂未提供书评数据。</li>"
+        html_text = (
+            "<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>书评区</title><style>"
+            "body{margin:0;padding:16px;background:#1c2126;color:#e0e6e3;font:15px/1.6 -apple-system,sans-serif}"
+            "h1{font-size:18px;margin:0 0 12px}.head{display:flex;gap:12px;align-items:baseline;margin-bottom:16px}"
+            ".score{font-size:28px;color:#f5a623;font-weight:700}.head span{color:#9fb0ae;font-size:13px}"
+            "ul{list-style:none;margin:0;padding:0}li{padding:12px 0;border-bottom:1px solid #2d3439}"
+            ".who{font-weight:600;margin-bottom:4px}.meta{color:#7f918f;font-weight:400;font-size:12px;margin-left:8px}"
+            "p{margin:0;white-space:pre-wrap}.empty{color:#7f918f}"
+            "</style></head><body><h1>书评区</h1><div class='head'>" + head + "</div><ul>" + body_rows + "</ul></body></html>"
+        )
+        return HTMLResponse(
+            html_text,
             headers={
                 "X-Frame-Options": "SAMEORIGIN",
                 "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'",

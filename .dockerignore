@@ -26,3 +26,7 @@ data
 config
 generated
 runtime
+
+# 示例媒体源仅作本地参考，不打包进镜像
+plugins/sources/thirdparty/sample_audio_books
+plugins/sources/thirdparty/sample_video_films

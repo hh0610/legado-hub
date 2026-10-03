@@ -127,7 +127,7 @@ class PluginMetadata:
             errors.append("name is required")
         if self.type != "source":
             errors.append(f"type must be 'source', got {self.type}")
-        valid_caps = {"search", "detail", "toc", "chapter", "chapter_reviews", "explore", "auth"}
+        valid_caps = {"search", "detail", "toc", "chapter", "chapter_reviews", "book_reviews", "explore", "auth"}
         for cap in self.capabilities:
             if cap not in valid_caps:
                 errors.append(f"invalid capability: {cap}")
@@ -192,6 +192,8 @@ class PluginMetadata:
             if role not in {"mirror", "mobile", "desktop", "api", "legacy"}:
                 errors.append(f"invalid domainProfiles[].role: {role}")
         errors.extend(self._validate_ui())
+        if self.ui and self.is_official_source():
+            errors.append("ui is only allowed for third-party sources, not official ones")
         return errors
 
     def _validate_ui(self) -> list[str]:

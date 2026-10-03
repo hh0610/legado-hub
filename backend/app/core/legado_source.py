@@ -36,8 +36,6 @@ _LAN_BOOK_SOURCE_URL = "LegadoHub-LAN"
 _LAN_NAME_MARK = "·内网"
 _LAN_GROUP_MARK = "内网"
 
-_AUDIO_BOOK_SOURCE_URL = "LegadoHub-Audio"
-_AUDIO_LAN_BOOK_SOURCE_URL = "LegadoHub-LAN-Audio"
 
 
 def _reader_rule_version_stamp(version: str = _READER_RULE_VERSION) -> int:
@@ -209,7 +207,6 @@ def _request_header_rule(base_api: str = "", *, access_code: str | None = None) 
 def _search_url_rule(base_api: str, *, media: str = "") -> str:
     """Search entry: resolve token (bound code / stored header) then hit API."""
     base = json.dumps(str(base_api or "").rstrip("/"), ensure_ascii=False)
-    media_param = "&media=audio" if media == "audio" else ""
     # key/page are injected by AnalyzeUrl for searchUrl @js.
     return (
         "@js:\n"
@@ -220,14 +217,13 @@ def _search_url_rule(base_api: str, *, media: str = "") -> str:
         "try { _key = String(key != null ? key : \"\"); } catch (e1) { _key = \"\"; }\n"
         "try { _page = String(page != null ? page : \"1\"); } catch (e2) { _page = \"1\"; }\n"
         "_base + \"/api/subscribe/legado/search?keyword=\" + encodeURIComponent(_key) + \"&page=\" + encodeURIComponent(_page)"
-        + (f" + \"{media_param}\"" if media_param else "") + ";"
+        + ";"
     )
 
 
 def _explore_url_rule(base_api: str, *, media: str = "") -> str:
     """Explore entry with pre-request token resolve (same as search)."""
     base = str(base_api or "").rstrip("/")
-    media_param = "&media=audio" if media == "audio" else ""
     # Keep group title prefix; URL body is @js so token is attached before GET.
     return (
         "已发布书库::@js:\n"
@@ -238,7 +234,7 @@ def _explore_url_rule(base_api: str, *, media: str = "") -> str:
         "var _page = \"1\";\n"
         "try { _page = String(page != null ? page : \"1\"); } catch (e1) { _page = \"1\"; }\n"
         "_base + \"/api/subscribe/legado/explore?page=\" + encodeURIComponent(_page)"
-        + (f" + \"{media_param}\"" if media_param else "") + ";"
+        + ";"
     )
 
 
@@ -531,164 +527,6 @@ def _reader_js_lib(base_api: str, *, access_code: str | None = None) -> str:
     )
 
 
-def _chapter_comment_url_rule() -> str:
-    return (
-        "@js:\n"
-        "var location = String(baseUrl || '');\n"
-        "var matched = /^data:contentUrl;base64,([^,]+)/i.exec(location);\n"
-        "if (!matched) throw new Error('chapter comment content URL missing');\n"
-        "var contentUrl = String(java.base64Decode(matched[1]) || '').trim();\n"
-        "if (!/^https?:\\/\\//i.test(contentUrl)) throw new Error('invalid chapter comment content URL');\n"
-        "legadoHubReviewRoot(legadoHubRewriteApiUrl(contentUrl)) + '/reviews';"
-    )
-
-
-def _chapter_comment_data_rule() -> str:
-    return (
-        "@js:\n"
-        "var reviews = JSON.parse(String(result || '{}'));\n"
-        "var segments = [];\n"
-        "(reviews.hotParagraphReviews || []).forEach(function (item) {\n"
-        "  if (!item || typeof item !== 'object') return;\n"
-        "  var paragraphId = Number(item.paragraphId);\n"
-        "  var paragraphIndex = Number(item.matchedParagraphIndex);\n"
-        "  if (!isFinite(paragraphId) || paragraphId < 0 || !isFinite(paragraphIndex) || paragraphIndex < 0) return;\n"
-        "  var total = legadoHubReviewCount(item);\n"
-        "  if (total <= 0) return;\n"
-        "  var hot = Array.isArray(item.topReviews) ? item.topReviews.length : Number(item.hotCommentCount || 0);\n"
-        "  segments.push({\n"
-        "    id: String(Math.floor(paragraphId)),\n"
-        "    paragraphIndex: Math.floor(paragraphIndex),\n"
-        "    paragraphCount: Math.max(1, Math.floor(Number(item.matchedParagraphCount) || 1)),\n"
-        "    excerpt: String(item.matchedText || item.paragraphText || ''),\n"
-        "    counts: {total: total, hot: Math.max(0, Math.floor(hot || 0))},\n"
-        "    pageEligible: true,\n"
-        "    actionData: {paragraphId: String(Math.floor(paragraphId))}\n"
-        "  });\n"
-        "});\n"
-        "var chapterHot = Array.isArray(reviews.chapterEndHot) ? reviews.chapterEndHot : [];\n"
-        "var chapterEnd = Array.isArray(reviews.chapterEnd) ? reviews.chapterEnd : [];\n"
-        "var chapterItems = chapterHot.concat(chapterEnd);\n"
-        "function cleanReviewPreview(item) {\n"
-        "  return String(item && (item.content || item.Content) || '')\n"
-        "    .replace(/<[^>]*>/g, ' ')\n"
-        "    .replace(/\\[fn=\\d+\\]/g, '')\n"
-        "    .replace(/\\s+/g, ' ')\n"
-        "    .trim();\n"
-        "}\n"
-        "function cleanReviewUser(item) {\n"
-        "  return String(item && (item.userName || item.UserName || item.nickName) || '')\n"
-        "    .replace(/<[^>]*>/g, ' ')\n"
-        "    .replace(/\\s+/g, ' ')\n"
-        "    .trim();\n"
-        "}\n"
-        "var chapterPreviews = [];\n"
-        "var seenChapterPreviews = {};\n"
-        "chapterItems.some(function (item) {\n"
-        "  var content = cleanReviewPreview(item);\n"
-        "  if (!content) return false;\n"
-        "  var user = cleanReviewUser(item);\n"
-        "  var value = (user ? user + '：' : '') + content;\n"
-        "  var key = '$' + String(item && (item.id || item.reviewId) || value);\n"
-        "  if (seenChapterPreviews[key]) return false;\n"
-        "  seenChapterPreviews[key] = true;\n"
-        "  chapterPreviews.push(value.slice(0, 512));\n"
-        "  return chapterPreviews.length >= 3;\n"
-        "});\n"
-        "var authorItems = Array.isArray(reviews.authorReviews) ? reviews.authorReviews : [];\n"
-        "var author = null;\n"
-        "authorItems.some(function (item) {\n"
-        "  var content = cleanReviewPreview(item);\n"
-        "  if (!content) return false;\n"
-        "  var authorPreview = content.slice(0, 512);\n"
-        "  author = {\n"
-        "    label: cleanReviewUser(item) || '作者',\n"
-        "    badge: '作家说',\n"
-        "    counts: {total: 0, hot: 0},\n"
-        "    actionData: null,\n"
-        "    previews: [authorPreview]\n"
-        "  };\n"
-        "  return true;\n"
-        "});\n"
-        "var chapterTotal = legadoHubChapterEndReviewCount(reviews);\n"
-        "JSON.stringify({\n"
-        "  version: 2,\n"
-        "  segments: segments,\n"
-        "  author: author,\n"
-        "  chapter: chapterTotal > 0 ? {\n"
-        "    label: '本章说',\n"
-        "    counts: {total: chapterTotal, hot: chapterHot.length},\n"
-        "    actionData: {},\n"
-        "    previews: chapterPreviews\n"
-        "  } : null\n"
-        "});"
-    )
-
-
-def _chapter_comment_action_rule() -> str:
-    # Client executes this via source.evalJS (not AnalyzeUrl). Bindings include
-    # chapter/event/result/baseUrl, but jsLib also defines function baseUrl(), so
-    # prefer chapter.getAbsoluteURL() and only treat baseUrl as a string location.
-    return (
-        "@js:\n"
-        "var rawEvent = event;\n"
-        "if (rawEvent == null || rawEvent === undefined || rawEvent === '') rawEvent = result;\n"
-        "if (rawEvent == null || rawEvent === undefined || rawEvent === '') rawEvent = '{}';\n"
-        "var actionEvent = JSON.parse(String(rawEvent));\n"
-        "var location = '';\n"
-        "try {\n"
-        "  if (chapter != null && chapter.getAbsoluteURL) location = String(chapter.getAbsoluteURL() || '');\n"
-        "} catch (e1) {}\n"
-        "if (!location) {\n"
-        "  try {\n"
-        "    if (chapter != null && chapter.url) location = String(chapter.url || '');\n"
-        "  } catch (e2) {}\n"
-        "}\n"
-        "if (!location) {\n"
-        "  try {\n"
-        "    var baseCandidate = baseUrl;\n"
-        "    if (typeof baseCandidate !== 'function') location = String(baseCandidate || '');\n"
-        "  } catch (e3) {}\n"
-        "}\n"
-        "var contentUrl = '';\n"
-        "var matched = /^data:contentUrl;base64,([^,]+)/i.exec(location);\n"
-        "if (matched) {\n"
-        "  contentUrl = String(java.base64Decode(matched[1]) || '').trim();\n"
-        "} else {\n"
-        "  var bare = String(location || '').split(/\\s*,\\s*(?=\\{)/)[0].trim();\n"
-        "  if (/^https?:\\/\\//i.test(bare)) contentUrl = bare;\n"
-        "}\n"
-        "if (!/^https?:\\/\\//i.test(contentUrl)) throw new Error('chapter comment content URL missing');\n"
-        "contentUrl = legadoHubRewriteApiUrl(contentUrl).replace(/\\/+$/, '');\n"
-        "var viewRoot = contentUrl + '/reviews/view';\n"
-        "var commentScope = String(actionEvent.scope || '');\n"
-        "var viewUrl = '';\n"
-        "var sheetTitle = '';\n"
-        "if (commentScope === 'chapter') {\n"
-        "  viewUrl = viewRoot + '?tab=chapter';\n"
-        "  sheetTitle = '本章说';\n"
-        "} else if (commentScope === 'page') {\n"
-        "  var ids = [];\n"
-        "  var segmentIds = actionEvent.segmentIds || [];\n"
-        "  for (var i = 0; i < segmentIds.length && ids.length < 50; i++) {\n"
-        "    var sid = String(segmentIds[i] || '');\n"
-        "    if (/^\\d+$/.test(sid)) ids.push(sid);\n"
-        "  }\n"
-        "  if (!ids.length) throw new Error('page comment segment missing');\n"
-        "  viewUrl = viewRoot + '?tab=paragraph&paragraphIds=' + encodeURIComponent(ids.join(','));\n"
-        "  sheetTitle = '页热评';\n"
-        "} else if (commentScope === 'segment') {\n"
-        "  var id = String(actionEvent.segmentId || (actionEvent.segmentIds || [])[0] || '');\n"
-        "  if (!/^\\d+$/.test(id)) throw new Error('segment comment id missing');\n"
-        "  viewUrl = viewRoot + '?tab=paragraph&paragraphId=' + encodeURIComponent(id);\n"
-        "  sheetTitle = '段评说';\n"
-        "} else {\n"
-        "  throw new Error('unsupported chapter comment scope');\n"
-        "}\n"
-        "JSON.stringify({type: 'sourceWebView', url: viewUrl, title: sheetTitle, presentation: 'bottomSheet', heightRatio: 0.78});"
-    )
-
-
 def _source_identity_for_base(base_api: str) -> tuple[str, str, str, bool]:
     """Return (bookSourceUrl, display name stem, group, is_lan) for this base."""
     config = load_aggregate_config()
@@ -704,33 +542,23 @@ def _source_identity_for_base(base_api: str) -> tuple[str, str, str, bool]:
     return _LAN_BOOK_SOURCE_URL, display, ",".join(parts), True
 
 
-def _audio_source_identity_for_base(base_api: str) -> tuple[str, str, str, bool]:
-    """Sibling audio source identity (bookSourceType 1) for the same base."""
-    lan = is_lan_reading_base(base_api)
-    if not lan:
-        return _AUDIO_BOOK_SOURCE_URL, "LegadoHub有声", "有声,LegadoHub", False
-    return (
-        _AUDIO_LAN_BOOK_SOURCE_URL,
-        f"LegadoHub有声{_LAN_NAME_MARK}",
-        f"有声,LegadoHub,{_LAN_GROUP_MARK}",
-        True,
-    )
+def _content_rule() -> str:
+    """Chapter content rule for the unified source.
 
-
-def _content_rule(media_kind: str) -> str:
-    """Chapter content rule shared by text/audio sources.
-
-    Both fetch the chapter payload through legadoHubAjax (same Bearer as
-    search/toc). The audio variant returns the signed media URL so the
-    Reading app player (bookSourceType 1) plays it directly.
+    Fetches the chapter payload through legadoHubAjax (same Bearer as
+    search/toc) and branches on the payload format: audio/video chapters
+    return the signed media URL (the app's native players handle playback —
+    book.type is stamped per-book in ruleBookInfo), text chapters render as
+    paragraphs.
     """
-    fetch_lines = (
+    return (
         '@js:\n'
         'var payload = String(result || "");\n'
         'var contentUrl = "";\n'
         'try {\n'
         '  contentUrl = String(java.hexDecodeToString(payload) || "").trim();\n'
         '  try { contentUrl = legadoHubRewriteApiUrl(contentUrl); } catch (e0) {}\n'
+        '  contentUrl += (contentUrl.indexOf("?") >= 0 ? "&" : "?") + "reviewBubbles=1";\n'
         '  if (/^https?:\\/\\//i.test(contentUrl)) {\n'
         '    try {\n'
         '      payload = String(legadoHubAjax(contentUrl) || "");\n'
@@ -747,20 +575,33 @@ def _content_rule(media_kind: str) -> str:
         '  else if (typeof chapterPayload.detail === "string") text = chapterPayload.detail;\n'
         '  else if (chapterPayload.detail && chapterPayload.detail.message) text = chapterPayload.detail.message;\n'
         '} catch (e) {}\n'
+        'var fmt = chapterPayload ? String(chapterPayload.format || "text") : "text";\n'
+        'var media = chapterPayload ? String(chapterPayload.mediaUrl || "") : "";\n'
+        'if ((fmt === "audio" || fmt === "video") && media) {\n'
+        '  result = media;\n'
+        '} else {\n'
+        '  text = String(text || "").replace(/\\r\\n/g, "\\n").replace(/\\r/g, "\\n");\n'
+        '  result = /<(?:p|div)\\b/i.test(text) ? text : text.replace(/\\n\\n+/g, "<br><br>").replace(/\\n/g, "<br>");\n'
+        '}'
     )
-    if media_kind == "audio":
-        return (
-            fetch_lines
-            + 'var media = chapterPayload ? String(chapterPayload.mediaUrl || "") : "";\n'
-            'if (!media) {\n'
-            '  media = "该章节暂无可播放音频（可能仍在处理或为付费内容），请稍后重试。";\n'
-            '}\n'
-            'result = media;'
-        )
+
+
+def _book_info_init_rule() -> str:
+    """Unified-source book info init: stamp per-book type flags from contentType.
+
+    阅读C/newer Reading map contentType to BookType flags so a single source
+    can carry text (8), audio (32) and video (4) books; the field rules below
+    then parse the same data object.
+    """
     return (
-        fetch_lines
-        + 'text = String(text || "").replace(/\\r\\n/g, "\\n").replace(/\\r/g, "\\n");\n'
-        'result = /<(?:p|div)\\b/i.test(text) ? text : text.replace(/\\n\\n+/g, "<br><br>").replace(/\\n/g, "<br>");'
+        "@js:\n"
+        'var raw = String(result || "");\n'
+        "var data = {};\n"
+        "try { data = JSON.parse(raw).data || {}; } catch (e0) {}\n"
+        'var kind = String(data.contentType || "text");\n'
+        'if (kind === "video") { try { book.type = 4; } catch (e1) {} }\n'
+        'else if (kind === "audio") { try { book.type = 32; } catch (e2) {} }\n'
+        "JSON.stringify(data);"
     )
 
 
@@ -768,23 +609,15 @@ def _build_source(
     base_api: str | None = None,
     *,
     access_code: str | None = None,
-    media_kind: str = "text",
 ) -> dict:
     base_api = normalize_public_base_url(base_api or get_public_base_url())
     app_config = AppConfig.get()
-    chapter_comment = app_config.chapter_comment
     bound = bool(str(access_code or "").strip())
 
-    if media_kind == "audio":
-        book_source_url, name, group, is_lan = _audio_source_identity_for_base(base_api)
-        book_source_type = 1
-        explore_url = _explore_url_rule(base_api, media="audio")
-        search_url = _search_url_rule(base_api, media="audio")
-    else:
-        book_source_url, name, group, is_lan = _source_identity_for_base(base_api)
-        book_source_type = 0
-        explore_url = _explore_url_rule(base_api)
-        search_url = _search_url_rule(base_api)
+    book_source_url, name, group, is_lan = _source_identity_for_base(base_api)
+    book_source_type = 0
+    explore_url = _explore_url_rule(base_api)
+    search_url = _search_url_rule(base_api)
 
     network_note = (
         "本条为内网书源（bookSourceUrl=LegadoHub-LAN），可与公网书源并存；"
@@ -797,9 +630,10 @@ def _build_source(
         else "请使用管理员发放的专属书源链接导入。"
     )
     media_note = (
-        "本条为有声源（bookSourceType=1），仅包含有声书，正文规则返回音频直链由阅读 App 播放；"
-        if media_kind == "audio"
-        else "本条为文字源，仅包含文字书；有声书请导入配套的 LegadoHub有声 源，视频书请在 Web 端观看；"
+        "统一源：文字/有声/视频书一并收录，书籍类型按内容自动标记，"
+        "有声与视频章节的正文为媒体直链，由阅读 App 内置播放器播放；"
+        "正文内嵌可点击段评气泡与章末评论卡片（阅读C/Max 客户端），"
+        "不再携带 legado-X 的 chapterComment 协议；"
     )
     return {
         "bookSourceName": f"{name}({_READER_RULE_VERSION})",
@@ -853,7 +687,7 @@ def _build_source(
             "bookUrl": "$.bookUrl",
         },
         "ruleBookInfo": {
-            "init": "$.data",
+            "init": _book_info_init_rule(),
             "name": "$.name",
             "author": "$.author",
             "coverUrl": "$.coverUrl",
@@ -883,35 +717,10 @@ def _build_source(
         "ruleContent": {
             # Must use legadoHubAjax (jsLib) so chapter fetch carries the same
             # Bearer as search/toc. Plain java.ajax(contentUrl) skipped source header.
-            "content": _content_rule(media_kind),
+            # 段评/章评通过正文内嵌气泡 + 章末卡片（legado_max_bubbles）投递，
+            # 不再携带 legado-X 专用的 chapterComment 协议。
+            "content": _content_rule(),
             "title": "$.title",
-            "chapterComment": {
-                "protocolVersion": 2,
-                "url": _chapter_comment_url_rule(),
-                "data": _chapter_comment_data_rule(),
-                "action": _chapter_comment_action_rule(),
-                "display": {
-                    "segment": {
-                        "enabled": chapter_comment.segment_enabled,
-                        "preset": "count" if chapter_comment.segment_enabled else "none",
-                        "countField": "total",
-                        "label": "",
-                    },
-                    "page": {
-                        "enabled": chapter_comment.page_enabled,
-                        "preset": "pull" if chapter_comment.page_enabled else "none",
-                        "countField": "total",
-                        "label": "热评",
-                    },
-                    "chapter": {
-                        "enabled": chapter_comment.chapter_enabled,
-                        "preset": "summaryRow" if chapter_comment.chapter_enabled else "none",
-                        "countField": "total",
-                        "label": "本章说",
-                    },
-                },
-                "cacheTtlSeconds": 300,
-            },
         },
         "jsLib": _reader_js_lib(base_api, access_code=access_code),
     }
@@ -922,15 +731,13 @@ def generate_legado_source(
     *,
     access_code: str | None = None,
 ) -> list[dict]:
-    """Two sibling sources: text (bookSourceType 0) and audio (bookSourceType 1).
+    """One unified source for text/audio/video books.
 
-    Video books are not emitted to Reading — the app has no video player; they
-    stay playable in the web console.
+    ruleBookInfo stamps per-book type flags from contentType (audio 32 /
+    video 4) so 阅读C/newer Reading route chapters to the right player, and
+    ruleContent branches on the chapter payload format.
     """
-    return [
-        _build_source(base_api, access_code=access_code, media_kind="text"),
-        _build_source(base_api, access_code=access_code, media_kind="audio"),
-    ]
+    return [_build_source(base_api, access_code=access_code)]
 
 
 def write_legado_source() -> str:
