@@ -954,6 +954,10 @@ def test_legado_search_prioritizes_current_reader_subscription_without_private_f
         def is_official_source():
             return False
 
+        @staticmethod
+        def is_licensed_source():
+            return False
+
     class Plugin:
         metadata = Metadata()
         capabilities = ["search", "detail", "toc", "chapter"]

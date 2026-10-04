@@ -251,7 +251,7 @@ async def page_hot_reviews(
     page: int = 1,
     page_size: int = 20,
 ) -> dict[str, Any]:
-    return await _paged_review_operation(
+    result = await _paged_review_operation(
         scheduler,
         chapter_id,
         "page_hot_reviews",
@@ -259,6 +259,47 @@ async def page_hot_reviews(
         page=page,
         page_size=page_size,
     )
+    comments = result.get("comments") if isinstance(result.get("comments"), list) else []
+    if comments:
+        return result
+    # 回退：插件未实现 page_hot_reviews（如起点 Web）时，改用章节评论里
+    # 已内嵌的 hotParagraphReviews.topReviews（形状与视图渲染字段同构）。
+    debug = result.get("debug") if isinstance(result.get("debug"), dict) else {}
+    if "page_hot_reviews method" not in str(debug.get("error", "")):
+        return result
+    try:
+        reviews = await chapter_reviews(scheduler, chapter_id)
+    except Exception:
+        return result
+    wanted = {int(value) for value in paragraph_ids if isinstance(value, int)}
+    comments = []
+    for item in reviews.get("hotParagraphReviews") or []:
+        if not isinstance(item, dict):
+            continue
+        try:
+            paragraph_id = int(item.get("paragraphId", -1))
+        except (TypeError, ValueError):
+            continue
+        if paragraph_id not in wanted:
+            continue
+        for entry in item.get("topReviews") or []:
+            if isinstance(entry, dict):
+                comments.append({
+                    **entry,
+                    "paragraphId": paragraph_id,
+                    "paragraphText": str(item.get("paragraphText", "") or ""),
+                })
+    comments.sort(key=lambda entry: int(entry.get("likeNum") or 0), reverse=True)
+    total = len(comments)
+    start = (max(1, int(page or 1)) - 1) * page_size
+    return {
+        "implemented": True,
+        "chapterId": chapter_id,
+        "comments": comments[start:start + page_size],
+        "totalCount": total,
+        "hasMore": start + page_size < total,
+        "debug": {"fallback": "hot_paragraph_reviews"},
+    }
 
 
 async def chapter_say(

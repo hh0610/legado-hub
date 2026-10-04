@@ -212,10 +212,18 @@ def _get_legado_search_service() -> SearchJobService:
 def _third_party_search_source_ids(search_service: SearchJobService) -> list[str]:
     scheduler = search_service.scheduler
     plugins = scheduler._search_priority_plugins(scheduler._enabled_plugins())
+    from app.core.app_config import AppConfig
+
+    try:
+        include_official = bool(AppConfig.get().search.official_source_in_normal_search)
+    except Exception:
+        include_official = False
     return [
         plugin.metadata.id
         for plugin in plugins
-        if "search" in plugin.capabilities and not plugin.metadata.is_official_source()
+        if "search" in plugin.capabilities
+        and (include_official or not plugin.metadata.is_official_source())
+        and not plugin.metadata.is_licensed_source()
     ]
 
 

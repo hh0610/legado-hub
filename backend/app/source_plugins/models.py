@@ -269,6 +269,12 @@ class PluginMetadata:
         source_role = str(self.content.get("sourceRole", "") or "").strip().lower()
         return "official" in tags or source_role == "official"
 
+    def is_licensed_source(self) -> bool:
+        """授权/版权方源（sourceRole=official，如起点）：仅用于后台聚合，"""
+        # 不参与阅读端实时直读；平台自有官方源（仅 official 标签）不受此限。
+        role = str(self.content.get("sourceRole", "") or "").strip().lower()
+        return role == "official"
+
     @property
     def content_kind(self) -> str:
         """Declared media kind of chapter content: "text" | "audio" | "video"."""

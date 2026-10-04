@@ -245,7 +245,8 @@ def test_reading_rejects_official_and_unknown_plugin_ids_before_catalog(
 
     catalog = Catalog()
     plugin = catalog.scheduler._plugins["fixture_reading"]
-    monkeypatch.setattr(plugin.metadata, "tags", ["official"])
+    # 授权源（sourceRole=official，如起点）禁止直读；标签官方源（平台自有）放行。
+    monkeypatch.setattr(plugin.metadata, "content", {"access": "free", "sourceRole": "official"})
     book_id = encode_book_id("fixture_reading", "https://example.com/book/1/")
     chapter_id = encode_chapter_id("fixture_reading", "https://example.com/book/1/1.html")
     unknown_book_id = encode_book_id("missing_plugin", "https://example.com/book/1/")
