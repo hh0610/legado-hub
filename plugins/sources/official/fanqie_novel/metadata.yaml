@@ -1,0 +1,55 @@
+contractVersion: "1.0"
+id: fanqie_novel
+name: 番茄小说
+author: Yunwei
+version: 0.2.0
+type: source
+enabled: true
+language: zh-CN
+domains:
+  - fqnovel.com
+  - reading.snssdk.com
+  - fanqienovel.com
+  - fanqie.novel
+baseUrls:
+  - https://reading.snssdk.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+  - chapter_reviews
+  - book_reviews
+auth:
+  mode: none
+  loginUrl: ""
+  accountRequiredFor: []
+  cookieDomains: []
+content:
+  access: free
+  paid: not_supported
+  encryption: crypt_manager_v2
+rateLimit:
+  perHostConcurrency: 1
+  minIntervalMs: 1200
+proxy:
+  mode: never
+  required: false
+browser:
+  mode: none
+accessStrategy:
+  search: api
+  detail: api
+  toc: api
+  chapter: api
+tags:
+  - official
+  - json-api
+  - mobile-api
+  - signed
+  - encrypted
+sourceSeed:
+  type: manual
+  upstreamId: fanqie
+  upstreamFile: ""
+  upstreamCommit: ""

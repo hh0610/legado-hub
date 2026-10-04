@@ -105,12 +105,16 @@ def test_legado_manifest_is_anonymous_but_reading_requires_valid_bearer(client):
         "/api/legado/book/not-a-book-id",
         "/api/legado/chapter/not-a-chapter-id",
         "/api/legado/chapter/not-a-chapter-id/reviews",
-        "/api/legado/chapter/not-a-chapter-id/reviews/view",
     ]
     for path in protected_paths:
         response = anonymous.get(path)
         assert response.status_code == 401
         assert response.json() == {"detail": "当前未登陆，请登陆后使用。"}
+
+    # 评论视图页双轨访问：无会话且无签名 access 令牌时同样 401。
+    review_view = anonymous.get("/api/legado/chapter/not-a-chapter-id/reviews/view")
+    assert review_view.status_code == 401
+    assert review_view.json() == {"detail": "评论页访问未授权"}
 
     console_response = anonymous.get("/api/console/chapter/invalid")
     assert console_response.status_code == 401

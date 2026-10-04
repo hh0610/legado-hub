@@ -1,0 +1,53 @@
+contractVersion: "1.0"
+id: qimao_novel
+name: 七猫小说
+author: LegadoHub-RE
+version: 0.1.0
+type: source
+domains:
+  - wtzw.com
+baseUrls:
+  - https://api-bc.wtzw.com
+  - https://api-ks.wtzw.com
+  - https://xiaoshuo.wtzw.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+  - chapter_reviews
+  - book_reviews
+auth:
+  mode: none
+  loginUrl: ""
+  accountRequiredFor: []
+  cookieDomains: []
+content:
+  access: mixed
+  kind: text
+tags:
+  - official
+  - json-api
+  - android-app
+enabled: true
+priority: 60
+rateLimit:
+  perHostConcurrency: 2
+  minIntervalMs: 300
+proxy:
+  mode: auto
+browser:
+  mode: none
+  reason: ""
+ui:
+  - title: 游客身份
+    description: 设备指纹与游客 token 保存在服务端，此处仅管理员可操作。
+    items:
+      - { type: button, id: guest_status, label: 游客身份与登录状态, action: ui_guest_status }
+      - { type: button, id: guest_test, label: 直连登录测试, action: ui_test_login }
+      - { type: button, id: guest_reset, label: 重置游客身份, action: ui_reset_identity }
+sourceSeed:
+  type: manual
+  upstreamId: qimao-novel
+  upstreamFile: ""
+  upstreamCommit: ""

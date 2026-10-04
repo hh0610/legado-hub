@@ -109,6 +109,12 @@ def max_preview_retries_reached(preview_retry_count: int) -> bool:
     return preview_retry_count >= len(PREVIEW_RETRY_DELAYS_MINUTES)
 
 
+# 媒体章节阅读时实时重解析的短 TTL 缓存：七猫 TTS mp3 / 短剧 m3u8 直链
+# 均带 expire 时效，订阅时落库的 URL 会过期；读取时按源章节实时重取。
+_MEDIA_FRESH_CACHE: dict[str, tuple[float, dict]] = {}
+_MEDIA_FRESH_TTL_SECONDS = 600.0
+
+
 class AggregateProcessor:
     def __init__(self, db_path: str | Path | None = None, *, ai_service: Any = None):
         from app.config import DB_PATH
@@ -1361,6 +1367,9 @@ class AggregateProcessor:
         preview/empty chapters does not repeatedly search every source. A changed
         payload/source map invalidates the cache; restarting the process clears it.
         """
+        # 有声/视频书只保留订阅主源：媒体章节不走候选补全/跨源对齐。
+        if str(payload.get("contentType", "") or "").strip().lower() in {"audio", "video"}:
+            return payload
         payload_signature = self._candidate_source_cache_signature(payload)
         cached = self._candidate_source_cache.get(aggregate_book_id)
         if cached is not None:
@@ -5136,7 +5145,7 @@ class AggregateProcessor:
         with self._conn() as conn:
             return self._aggregate_book_author(conn, aggregate_book_id)
 
-    def aggregate_chapter_response(self, chapter_url: str, chapter_id: str = "") -> dict:
+    async def aggregate_chapter_response(self, chapter_url: str, chapter_id: str = "") -> dict:
         try:
             payload = unpack_aggregate_chapter_url(chapter_url)
         except Exception as exc:
@@ -5168,7 +5177,7 @@ class AggregateProcessor:
                     file_path=row[2],
                 )
                 if media_response is not None:
-                    return media_response
+                    return await self._refresh_media_response(media_response)
             else:
                 content = self._read_chapter_content_from_file(row[2])
                 if content:
@@ -5229,6 +5238,7 @@ class AggregateProcessor:
             "mediaType": str(descriptor.get("mediaType", "") or ""),
             "durationSeconds": float(descriptor.get("durationSeconds", 0) or 0),
             "sourceId": str(descriptor.get("sourceId", "") or ""),
+            "sourceChapterId": str(descriptor.get("sourceChapterId", "") or ""),
             "authRequired": bool(descriptor.get("authRequired", preview_only)),
             "isVip": is_vip,
             "isPaid": is_vip,
@@ -5241,6 +5251,39 @@ class AggregateProcessor:
             },
             "debug": {"aggregate": True, "status": status, "media": True},
         }
+
+    async def _refresh_media_response(self, media_response: dict) -> dict:
+        """媒体直链带 expire（七猫 TTS mp3 / 短剧 m3u8）：读取时实时重解析。"""
+        import time as _time
+
+        source_chapter_id = str(media_response.get("sourceChapterId", "") or "")
+        if not source_chapter_id:
+            return media_response
+        now = _time.time()
+        cached = _MEDIA_FRESH_CACHE.get(source_chapter_id)
+        if cached and cached[0] > now:
+            fresh = cached[1]
+        else:
+            fresh = None
+            try:
+                from app.services.book_catalog import BookCatalog
+
+                result = await BookCatalog().chapter(source_chapter_id)
+                fmt = str(result.get("format", "") or "")
+                if fmt in {"audio", "video"} and result.get("mediaUrl"):
+                    fresh = {
+                        "format": fmt,
+                        "mediaUrl": str(result.get("mediaUrl", "") or ""),
+                        "mediaType": str(result.get("mediaType", "") or ""),
+                        "durationSeconds": float(result.get("durationSeconds") or 0),
+                    }
+            except Exception:
+                logger.warning("media refresh failed for %s", source_chapter_id, exc_info=True)
+            if fresh:
+                _MEDIA_FRESH_CACHE[source_chapter_id] = (now + _MEDIA_FRESH_TTL_SECONDS, fresh)
+        if fresh:
+            media_response = {**media_response, **fresh}
+        return media_response
 
     def _looks_like_garbled_text(self, content: str) -> bool:
         return looks_like_garbled_text(content)

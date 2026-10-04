@@ -735,7 +735,7 @@ class Catalog:
         if source_id == VIRTUAL_SOURCE_ID:
             from app.services.aggregate_processor import AggregateProcessor
 
-            return AggregateProcessor().aggregate_chapter_response(chapter_url, chapter_id=chapter_id)
+            return await AggregateProcessor().aggregate_chapter_response(chapter_url, chapter_id=chapter_id)
 
         cached = self.cache.get_chapter(chapter_id)
         result = await self.scheduler.chapter(source_id, chapter_url)

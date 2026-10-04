@@ -1106,9 +1106,24 @@ async def get_subscribed_chapter(request: Request, chapter_id: str):
         "extra": dict(result.get("extra") or {}) if isinstance(result.get("extra"), dict) else {},
     }
     if content_format in {"audio", "video"}:
+        from app.services.aggregate_processor import AggregateProcessor
         from app.services.media_proxy import signed_media_fields
         from app.core.public_security import get_public_base_url
 
+        try:
+            processor = AggregateProcessor()
+            descriptor = {
+                "format": content_format,
+                "mediaUrl": str(result.get("mediaUrl", "") or ""),
+                "mediaType": str(result.get("mediaType", "") or ""),
+                "durationSeconds": float(result.get("durationSeconds") or 0),
+                "sourceChapterId": str(result.get("sourceChapterId", "") or ""),
+            }
+            fresh = await processor._refresh_media_response(descriptor)
+            result = {**result, **fresh}
+            response["format"] = str(result.get("format", "") or content_format)
+        except Exception:
+            pass
         response.update(
             signed_media_fields(
                 result,

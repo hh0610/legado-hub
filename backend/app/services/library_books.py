@@ -1918,6 +1918,7 @@ class LibraryBooksService:
                 "mediaType": str(descriptor.get("mediaType", "") or ""),
                 "durationSeconds": float(descriptor.get("durationSeconds", 0) or 0),
                 "sourceId": str(descriptor.get("sourceId", "") or ""),
+                "sourceChapterId": str(descriptor.get("sourceChapterId", "") or ""),
                 "authRequired": bool(descriptor.get("authRequired", preview_only)),
                 "isVip": is_vip,
                 "isPaid": is_vip,

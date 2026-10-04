@@ -881,7 +881,7 @@ def test_fallback_chapter_response_returns_fallback_content(tmp_path):
 
     chapter_url = make_aggregate_chapter_url(book_id, f"official_src:ch1", title="第1章", index=1)
     processor = AggregateProcessor(db_path)
-    resp = processor.aggregate_chapter_response(chapter_url, chapter_id=ch_id)
+    resp = __import__("asyncio").run(processor.aggregate_chapter_response(chapter_url, chapter_id=ch_id))
 
     assert resp["content"] == "这是 fallback 正文内容"
     assert resp["debug"]["status"] == "fallback"

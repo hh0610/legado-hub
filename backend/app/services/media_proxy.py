@@ -404,3 +404,25 @@ def signed_media_fields(result: dict, *, source_id: str, base_api: str = "") -> 
         "mediaType": str(result.get("mediaType", "") or ""),
         "durationSeconds": duration,
     }
+
+# ---- 阅读C/Max WebView 评论页签名访问（对齐媒体直链的 HMAC 模式）----
+_REVIEW_COOKIE_MAX_AGE_SECONDS = 6 * 3600
+REVIEW_ACCESS_COOKIE = "legadohub_review_access"
+
+
+def sign_reviews_cookie(*, ttl_seconds: int = _REVIEW_COOKIE_MAX_AGE_SECONDS) -> str:
+    payload = {"e": int(time.time()) + max(60, int(ttl_seconds))}
+    token = _encode_payload(payload)
+    return f"{token}.{_sign(token)}"
+
+
+def verify_reviews_cookie(value: str) -> bool:
+    if not value or "." not in value:
+        return False
+    token, _, signature = value.rpartition(".")
+    if not token or not signature or len(token) > 512:
+        return False
+    if not hmac.compare_digest(_sign(token), signature):
+        return False
+    payload = _decode_payload(token)
+    return bool(payload) and int(payload.get("e", 0) or 0) >= time.time()

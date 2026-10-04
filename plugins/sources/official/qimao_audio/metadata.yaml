@@ -1,0 +1,70 @@
+contractVersion: "1.0"
+id: qimao_audio
+name: 七猫听书
+author: LegadoHub-RE
+version: 0.1.0
+type: source
+domains:
+  - wtzw.com
+  - qimao.com
+baseUrls:
+  - https://api-bc.wtzw.com
+  - https://api-ks.wtzw.com
+  - https://xiaoshuo.wtzw.com
+capabilities:
+  - search
+  - detail
+  - toc
+  - chapter
+  - chapter_reviews
+  - book_reviews
+auth:
+  mode: none
+  loginUrl: ""
+  accountRequiredFor: []
+  cookieDomains: []
+content:
+  access: mixed
+  kind: audio
+  streamDomains:
+    - qimao.com
+    - wtzw.com
+tags:
+  - official
+  - audio
+  - json-api
+  - android-app
+enabled: true
+priority: 60
+rateLimit:
+  perHostConcurrency: 2
+  minIntervalMs: 300
+proxy:
+  mode: auto
+browser:
+  mode: none
+  reason: ""
+ui:
+  - title: 游客身份
+    description: 设备指纹与游客 token 保存在服务端，此处仅管理员可操作。
+    items:
+      - { type: button, id: guest_status, label: 游客身份与登录状态, action: ui_guest_status }
+      - { type: button, id: guest_test, label: 直连登录测试, action: ui_test_login }
+      - { type: button, id: guest_reset, label: 重置游客身份, action: ui_reset_identity }
+  - title: 听书设置
+    description: 经 ctx.settings 注入，影响目录与 TTS 音色解析。
+    items:
+      - type: text
+        id: tts_voice_id
+        label: 指定 TTS 音色 ID
+        help: 留空自动选择随书 AI 音色；可填如 10（多角色对话）、8（明朗青年）。
+      - type: select
+        id: toc_order
+        label: 目录顺序
+        choices: [正序, 倒序]
+        default: 正序
+sourceSeed:
+  type: manual
+  upstreamId: qimao-audio
+  upstreamFile: ""
+  upstreamCommit: ""

@@ -1,0 +1,43 @@
+# 番茄小说插件 smoke 测试配置
+#
+# 章节解密链路用 126 条 DCRYPT-PAIR 样本做 fixture（覆盖 s1/s2 两个会话密钥）：
+#   - fixtures/dz1_pairs_s1.jsonl (90 条)
+#   - fixtures/dz1_pairs_s2.jsonl (36 条)
+# 每条样本包含 {content, key, ver, gzip_b64}，验证 _gunzip_content + _html_to_text。
+#
+# 注意：smoke fixture 只覆盖解密后的文本解析（gunzip + XHTML→纯文本），
+# 不覆盖"主动解密"链路本身。主动解密（getlastkey 引导 + decode2 + gunzip）
+# 需要真机 Oracle 服务在线，由联调脚本 D:\Dev\root-munch\probe_e2e_plugin.py 验证。
+#
+# 主动解密链路说明（零人工，App 冷启自动完成）：
+#   1. Oracle 冷启后 ~45s 内 App 自动向 KMS 发起 RegisterKey，getlastkey 可拿到 v2
+#   2. chapter() 调 /reading/reader/full/v 拿 base64 密文 content（crypt_status=0 是烟雾弹）
+#   3. _active_decrypt → decode2(content, v2, 1001) → decodelast 轮询 → gunzip
+#   4. decode2/decodelast 是 agent 端单槽（dz1Last），source.py 用 asyncio.Lock 串行化
+#   5. 解密失败自动刷 v2 重试一次；仍失败则 getlastpair 被动兜底
+#
+# search/detail/toc/chapter_reviews 需要真机 Oracle 服务（127.0.0.1:8767）+ 真机签名，
+# 标记 requires_oracle: true，离线 smoke 跳过；如需联调测试见 probe_e2e_plugin.py。
+#
+# chapter_reviews 评论接口：
+#   章评：POST /novel/commentapi/comment/list/{book_id}/v1  comment_source=1 comment_type=2 server_channel=4
+#   段评：POST /novel/commentapi/comment/list/{chapter_id}/v1 comment_source=2 comment_type=1 para_index=N
+#   需要自定义 header：comment-source / server-channel（由 Oracle /fetch 的 headers 参数传递）
+#   响应：data.data_list[].comment.common.content.text / user_info.base_info.user_name / stat.digg_count
+
+keyword: 番茄
+requires_oracle: true   # search/detail/toc/chapter_reviews 都需 Oracle 代发
+
+fixtures:
+  chapter_decrypt:
+    description: 126 条 DCRYPT-PAIR 离线样本（密钥已轮换 s1/s2）
+    files:
+      - fixtures/dz1_pairs_s1.jsonl
+      - fixtures/dz1_pairs_s2.jsonl
+
+expect:
+  chapter_decrypt:
+    minPassRate: 1.0          # 100% 通过率
+    minTextLength: 500       # 单章正文至少 500 字
+    minParagraphCount: 5     # 至少 5 个段落
+    titleRequired: true      # 标题非空

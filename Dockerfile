@@ -35,6 +35,10 @@ RUN python -m pip install --no-cache-dir -r /app/backend/requirements.txt \
 COPY --chown=legadohub:legadohub backend/ /app/backend/
 COPY --chown=legadohub:legadohub plugins/sources/thirdparty/ /opt/legadohub/plugins/thirdparty/
 COPY --chown=legadohub:legadohub plugins/sources/official/qidian_com_web/ /opt/legadohub/plugins/official/qidian_com_web/
+COPY --chown=legadohub:legadohub plugins/sources/official/qimao_novel/ /opt/legadohub/plugins/official/qimao_novel/
+COPY --chown=legadohub:legadohub plugins/sources/official/qimao_audio/ /opt/legadohub/plugins/official/qimao_audio/
+COPY --chown=legadohub:legadohub plugins/sources/official/qimao_video/ /opt/legadohub/plugins/official/qimao_video/
+COPY --chown=legadohub:legadohub plugins/sources/official/fanqie_novel/ /opt/legadohub/plugins/official/fanqie_novel/
 COPY --chown=legadohub:legadohub --from=frontend-build /app/frontend/dist /app/frontend/dist
 COPY deploy/docker/entrypoint.sh /usr/local/bin/legadohub-entrypoint
 

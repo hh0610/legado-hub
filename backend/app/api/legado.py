@@ -267,6 +267,53 @@ async def _chapter_reviews(chapter_id: str, *, catalog: Catalog | None = None) -
     return reviews
 
 
+async def _refresh_media_chapter(shared: dict) -> dict:
+    """媒体直链带 expire：读取时按源章节实时重解析（TTL 缓存内复用）。"""
+    from app.services.aggregate_processor import AggregateProcessor
+
+    source_chapter_id = str(shared.get("sourceChapterId", "") or "")
+    if not source_chapter_id:
+        return shared
+    try:
+        processor = AggregateProcessor()
+        descriptor = {
+            "format": shared.get("format", ""),
+            "mediaUrl": shared.get("mediaUrl", ""),
+            "mediaType": shared.get("mediaType", ""),
+            "durationSeconds": shared.get("durationSeconds", 0),
+        }
+        fresh = await processor._refresh_media_response({**descriptor, "sourceChapterId": source_chapter_id})
+        return {**shared, **fresh}
+    except Exception:
+        logger.warning("media refresh failed for %s", source_chapter_id, exc_info=True)
+        return shared
+
+
+def _signed_reviews_page_url(base_api: str, path: str) -> str:
+    """评论页签名链接：携带一次性 access 令牌（Max WebView 无 Bearer）。"""
+    from app.services.media_proxy import sign_reviews_cookie
+
+    return f"{base_api}{path}?access={sign_reviews_cookie()}"
+
+
+def _reviews_view_access(request: Request, access: str | None) -> str:
+    """评论页双轨访问：阅读会话 或 签名 access 令牌（Max WebView 无 Bearer）。
+
+    返回限流键；令牌有效时同时下发短时效 cookie，页面内 fetch 同源自动携带。
+    """
+    from app.services.media_proxy import REVIEW_ACCESS_COOKIE, sign_reviews_cookie, verify_reviews_cookie
+
+    try:
+        user = auth_service.require_reading_user(request, touch=False)
+        return user.user_id, None
+    except HTTPException:
+        pass
+    token = str(access or "") or str(request.cookies.get("legadohub_review_access") or "")
+    if token and verify_reviews_cookie(token):
+        return "review-access", (token if access else None)
+    raise HTTPException(status_code=401, detail="评论页访问未授权")
+
+
 async def _append_book_reviews_card(
     content: str,
     chapter_url: str,
@@ -290,7 +337,7 @@ async def _append_book_reviews_card(
     if plugin is None or "book_reviews" not in plugin.capabilities:
         return content
     book_id = make_library_book_id(aggregate_book_id)
-    card_url = f"{base_api}/api/legado/book/{book_id}/reviews/view"
+    card_url = _signed_reviews_page_url(base_api, f"/api/legado/book/{book_id}/reviews/view")
     card = link_card("书评区", "评分与热门评论", card_url)
     return content.rstrip() + "\n\n" + card
 
@@ -461,6 +508,7 @@ async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | No
             if shared is None:
                 raise HTTPException(status_code=404, detail="章节尚未发布")
             if str(shared.get("format", "") or "") in {"audio", "video"}:
+                shared = await _refresh_media_chapter(shared)
                 return _public_chapter_response(
                     shared,
                     chapter_id=chapter_id,
@@ -509,7 +557,7 @@ async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | No
             try:
                 with reading_access_limiter.guard(user.user_id, "reviews"):
                     reviews = await _chapter_reviews(chapter_id, catalog=catalog)
-                view_url = f"{base_api}/api/legado/chapter/{chapter_id}/reviews/view"
+                view_url = _signed_reviews_page_url(base_api, f"/api/legado/chapter/{chapter_id}/reviews/view")
                 response["content"] = decorate_legado_max_content(
                     response["content"], reviews, view_url=view_url
                 )
@@ -556,8 +604,9 @@ async def get_chapter_review_view(
     page: str = "1",
     pageSize: str = "10",
     cursorId: str = "0",
+    access: str | None = None,
 ) -> HTMLResponse:
-    user = auth_service.require_reading_user(request, touch=False)
+    viewer_key, review_cookie = _reviews_view_access(request, access)
     _reject_query_anomalies(
         request,
         {
@@ -569,6 +618,7 @@ async def get_chapter_review_view(
             "pageSize",
             "cursorId",
             "lane",
+            "access",
         },
     )
     chapter_id = _validated_external_id(chapter_id, label="章节")
@@ -587,7 +637,7 @@ async def get_chapter_review_view(
     if paragraphIds is not None and (len(paragraphIds) > 1024 or any(ord(char) < 32 for char in paragraphIds)):
         raise HTTPException(status_code=422, detail="paragraphIds 无效")
 
-    with reading_access_limiter.guard(user.user_id, "reviews"):
+    with reading_access_limiter.guard(viewer_key, "reviews"):
         catalog = Catalog(base_api=get_public_base_url(request))
         if source_id == VIRTUAL_SOURCE_ID:
             chapter = library_books_service.legado_chapter(chapter_id)
@@ -660,7 +710,7 @@ async def get_chapter_review_view(
                 page_size=page_size,
             )
         base_api = get_public_base_url(request)
-        review_view_url = f"{base_api}/api/legado/chapter/{chapter_id}/reviews/view"
+        review_view_url = _signed_reviews_page_url(base_api, f"/api/legado/chapter/{chapter_id}/reviews/view")
         return HTMLResponse(
             render_chapter_reviews_html(
                 chapter_title=str(chapter.get("title") or "本章评论"),
@@ -678,15 +728,25 @@ async def get_chapter_review_view(
                 "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'",
             },
         )
+        if review_cookie:
+            response.set_cookie(
+                "legadohub_review_access",
+                review_cookie,
+                max_age=6 * 3600,
+                httponly=True,
+                samesite="lax",
+                path="/api/legado",
+            )
+        return response
 
 @router.get("/book/{book_id}/reviews/view", response_class=HTMLResponse)
-async def get_book_reviews_view(request: Request, book_id: str) -> str:
+async def get_book_reviews_view(request: Request, book_id: str, access: str | None = None) -> str:
     from html import escape as _html_escape
 
-    user = auth_service.require_reading_user(request, touch=False)
-    _reject_query_anomalies(request, set())
+    viewer_key, review_cookie = _reviews_view_access(request, access)
+    _reject_query_anomalies(request, {"access"})
     book_id = _validated_external_id(book_id, label="书籍")
-    with reading_access_limiter.guard(user.user_id, "reviews"):
+    with reading_access_limiter.guard(viewer_key, "reviews"):
         base_api = get_public_base_url(request)
         catalog = Catalog(base_api=base_api)
         data = await catalog.book_reviews(book_id)
@@ -737,10 +797,20 @@ async def get_book_reviews_view(request: Request, book_id: str) -> str:
             "p{margin:0;white-space:pre-wrap}.empty{color:#7f918f}"
             "</style></head><body><h1>书评区</h1><div class='head'>" + head + "</div><ul>" + body_rows + "</ul></body></html>"
         )
-        return HTMLResponse(
+        response = HTMLResponse(
             html_text,
             headers={
                 "X-Frame-Options": "SAMEORIGIN",
                 "Content-Security-Policy": "frame-ancestors 'self'; base-uri 'self'; object-src 'none'",
             },
         )
+        if review_cookie:
+            response.set_cookie(
+                "legadohub_review_access",
+                review_cookie,
+                max_age=6 * 3600,
+                httponly=True,
+                samesite="lax",
+                path="/api/legado",
+            )
+        return response

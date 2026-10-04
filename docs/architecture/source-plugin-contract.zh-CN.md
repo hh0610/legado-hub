@@ -112,7 +112,7 @@ tags:
 - `type`：必须为 `source`。
 - `domains`：插件允许或预期访问的域名。
 - `baseUrls`：站点或站点族的入口 URL。
-- `capabilities`：`search`、`detail`、`toc`、`chapter`、`explore`、`auth` 的子集。
+- `capabilities`：`search`、`detail`、`toc`、`chapter`、`chapter_reviews`、`book_reviews`、`explore`、`auth` 的子集。
 - `auth.mode`：`none`、`optional`、`required`、`manual` 之一。
 - `content.access`：`free`、`paid`、`mixed`、`unknown` 之一。
 - `content.kind`：`text`（默认）、`audio`、`video` 之一。声明本书源章节内容的媒体类型：有声书源设为 `audio`，影视/短剧源设为 `video`。媒体书源的 `search`/`detail`/`toc`/`chapter` 生命周期与文字书源完全一致，仅章节载荷不同（见下文"章节内容"）。
@@ -544,6 +544,26 @@ Reading 搜索页应在不先打开详情的情况下获得足够数据：`name`
 - `mediaUrl` 会被服务端媒体代理（`/api/media/stream`）按 Range 续传转发，HLS 播放列表会被自动重写；插件无需自行处理防盗链或代理。
 - 仅返回 `domains`、`baseUrls` 或 `content.streamDomains` 声明域名内的媒体地址，其他地址会被代理拒绝。
 - 有声书按"集"组织为章节；视频源同理按"集/话"组织，`toc` 仍返回完整顺序目录。
+
+书评能力（可选，`book_reviews`）：
+
+```python
+{
+    "summary": {"peopleCount": "585"},   # 评分概览（番茄无评分则只回总量）
+    "items": [
+        {
+            "id": "1", "userName": "书友", "avatar": "https://...",
+            "content": "评论文本", "likeCount": 20819, "replyCount": 12,
+            "time": "2024-02 四川", "rating": "10",
+        }
+    ],
+    "extra": {}, "debug": {},
+}
+```
+
+- `book_reviews(ctx, book_url)` 按书聚合返回书评列表；`summary.peopleCount` 为平台展示的总量（字符串原样透传）。
+- 平台在聚合书源正文末尾追加「书评区」入口卡片（阅读C/Max 客户端 showBrowser 打开
+  `/api/legado/book/{id}/reviews/view` 渲染页）；未声明该能力的书源自动跳过。
 
 章节正文最佳实践：
 

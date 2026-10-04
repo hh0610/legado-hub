@@ -132,6 +132,7 @@ export function Plugins() {
             selectionDisabled={batchEnableMutation.isPending}
             onToggleSelectAll={toggleSelectAll}
             onToggleSelected={handleRowCheck}
+            onOpenSettings={(source) => setSettingsTarget(source)}
           />
         </div>
       ) : (

@@ -21,6 +21,7 @@ interface OfficialSourcesPageProps {
   selectionDisabled?: boolean
   onToggleSelectAll?: () => void
   onToggleSelected?: (pluginId: string) => void
+  onOpenSettings?: (item: any) => void
 }
 
 export function OfficialSourcesPage({
@@ -31,6 +32,7 @@ export function OfficialSourcesPage({
   selectionDisabled = false,
   onToggleSelectAll,
   onToggleSelected,
+  onOpenSettings,
 }: OfficialSourcesPageProps) {
   const queryClient = useQueryClient()
   const { data, isLoading, error: queryError, refetch } = useQuery({ queryKey: ["official-sources"], queryFn: api.officialSources, refetchInterval: 5000 })
@@ -294,6 +296,7 @@ export function OfficialSourcesPage({
         selectionDisabled={selectionDisabled}
         onToggleSelectAll={onToggleSelectAll}
         onToggleSelected={onToggleSelected}
+        onOpenSettings={onOpenSettings}
         testId="official-sources-table-boundary"
         extraColumnCount={2}
         extraHeaders={authHeaders}

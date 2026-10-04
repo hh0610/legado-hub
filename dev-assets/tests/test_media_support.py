@@ -274,6 +274,8 @@ def _setup_media_book(tmp_path, *, content_kind="audio"):
 
 
 def test_media_chapter_write_and_aggregate_read(tmp_path):
+    import asyncio
+
     db_path, aggregate_book_id, source_chapter_id, chapter_id = _setup_media_book(tmp_path)
     processor = AggregateProcessor(db_path=db_path)
     processor._write_media_chapter_result(
@@ -301,12 +303,12 @@ def test_media_chapter_write_and_aggregate_read(tmp_path):
     assert str(row[1]).endswith(".json")
     assert not row[2]
 
-    response = processor.aggregate_chapter_response(make_aggregate_chapter_url(
+    response = asyncio.run(processor.aggregate_chapter_response(make_aggregate_chapter_url(
         aggregate_book_id=aggregate_book_id,
         source_chapter_id=source_chapter_id,
         title="第01集",
         index=1,
-    ), chapter_id=chapter_id)
+    ), chapter_id=chapter_id))
     assert response["format"] == "audio"
     assert response["mediaUrl"] == "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
     assert response["mediaType"] == "audio/mpeg"

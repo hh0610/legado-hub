@@ -109,7 +109,7 @@ Required field rules:
 - `type`: must be `source`.
 - `domains`: domains this plugin is allowed or expected to access.
 - `baseUrls`: starting URLs for this site or site family.
-- `capabilities`: subset of `search`, `detail`, `toc`, `chapter`, `explore`, `auth`.
+- `capabilities`: subset of `search`, `detail`, `toc`, `chapter`, `chapter_reviews`, `book_reviews`, `explore`, `auth`.
 - `auth.mode`: one of `none`, `optional`, `required`, `manual`.
 - `content.access`: one of `free`, `paid`, `mixed`, `unknown`.
 - `content.kind`: one of `text` (default), `audio`, `video`. Declares the media type of chapter content: audiobook sources use `audio`, film/series sources use `video`. Media sources share the exact same `search`/`detail`/`toc`/`chapter` lifecycle as text sources; only the chapter payload differs (see "Chapter content" below).
@@ -608,6 +608,28 @@ Media chapter rules:
   `content.streamDomains`; other hosts are rejected by the proxy.
 - Audiobooks organize episodes as chapters; video sources likewise organize
   episodes/segments. `toc` still returns the complete ordered catalog.
+
+Book reviews capability (optional, `book_reviews`):
+
+```python
+{
+    "summary": {"peopleCount": "585"},   # rating overview (no score concept: total only)
+    "items": [
+        {
+            "id": "1", "userName": "reader", "avatar": "https://...",
+            "content": "comment text", "likeCount": 20819, "replyCount": 12,
+            "time": "2024-02", "rating": "10",
+        }
+    ],
+    "extra": {}, "debug": {},
+}
+```
+
+- `book_reviews(ctx, book_url)` aggregates book-level reviews; `summary.peopleCount`
+  is the display total (string passthrough).
+- The unified Reading source appends a 书评区 entry card at the end of decorated
+  chapters (阅读C/Max `showBrowser` opening `/api/legado/book/{id}/reviews/view`);
+  sources without the capability are skipped.
 
 Chapter content best practices:
 
