@@ -59,6 +59,10 @@ plugins/sources/official/*
 !plugins/sources/official/fanqie_novel/
 !plugins/sources/official/fanqie_novel/**
 plugins/sources/official/qidian_com_web/**/__pycache__/
+plugins/sources/official/qimao_novel/**/__pycache__/
+plugins/sources/official/qimao_audio/**/__pycache__/
+plugins/sources/official/qimao_video/**/__pycache__/
+plugins/sources/official/fanqie_novel/**/__pycache__/
 plugins/sources/official/qidian_com_web/**/*.py[cod]
 plugins/sources/**/Cookie.json
 docs/archive/**/data/sources/raw/by-site/legado/sub-yiove_collections.json
