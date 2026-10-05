@@ -237,36 +237,30 @@ def test_reading_search_and_direct_third_party_loop(fixture_client, tmp_path):
         ).fetchone()[0] == 1
 
 
-def test_reading_rejects_official_and_unknown_plugin_ids_before_catalog(
+def test_reading_rejects_unknown_plugin_ids_before_catalog(
     fixture_client, monkeypatch
 ):
     from app.services.catalog import Catalog
     from app.source_plugins.id_codec import encode_book_id, encode_chapter_id
 
     catalog = Catalog()
-    plugin = catalog.scheduler._plugins["fixture_reading"]
-    # 授权源（sourceRole=official，如起点）禁止直读；标签官方源（平台自有）放行。
-    monkeypatch.setattr(plugin.metadata, "content", {"access": "free", "sourceRole": "official"})
-    book_id = encode_book_id("fixture_reading", "https://example.com/book/1/")
-    chapter_id = encode_chapter_id("fixture_reading", "https://example.com/book/1/1.html")
     unknown_book_id = encode_book_id("missing_plugin", "https://example.com/book/1/")
     unknown_chapter_id = encode_chapter_id("missing_plugin", "https://example.com/book/1/1.html")
 
     async def must_not_call(*_args, **_kwargs):
-        pytest.fail("official or unknown plugin ids must not reach Catalog")
+        pytest.fail("unknown plugin ids must not reach Catalog")
 
     monkeypatch.setattr(Catalog, "book_detail", must_not_call)
     monkeypatch.setattr(Catalog, "toc", must_not_call)
     monkeypatch.setattr(Catalog, "chapter", must_not_call)
     monkeypatch.setattr(Catalog, "chapter_reviews", must_not_call)
 
-    assert fixture_client.get(f"/api/legado/book/{book_id}").status_code == 404
-    assert fixture_client.get(f"/api/legado/book/{book_id}/toc").status_code == 404
-    assert fixture_client.get(f"/api/legado/chapter/{chapter_id}").status_code == 404
-    assert fixture_client.get(f"/api/legado/chapter/{chapter_id}/reviews").status_code == 404
-    assert fixture_client.get(f"/api/legado/chapter/{chapter_id}/reviews/view").status_code == 404
+    # 平台自有官方源已放行直读（策略变更）；未知插件 id 仍在进入 Catalog 前拒绝。
     assert fixture_client.get(f"/api/legado/book/{unknown_book_id}").status_code == 404
+    assert fixture_client.get(f"/api/legado/book/{unknown_book_id}/toc").status_code == 404
     assert fixture_client.get(f"/api/legado/chapter/{unknown_chapter_id}").status_code == 404
+    assert fixture_client.get(f"/api/legado/chapter/{unknown_chapter_id}/reviews").status_code == 404
+    assert fixture_client.get(f"/api/legado/chapter/{unknown_chapter_id}/reviews/view").status_code == 404
 
 
 def test_reading_rejects_third_party_urls_outside_declared_domains(

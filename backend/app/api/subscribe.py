@@ -48,7 +48,7 @@ _TERMINAL_SEARCH_STATUSES = {"completed", "partial", "timed_out", "failed", "can
 # page1 short-wait → return library + first remotes; page2+ short-wait → new remotes;
 # job hard-stop at 120s. Do not hold a single page for the full 120s.
 _READING_SEARCH_TIMEOUT_MS = 120_000
-_READING_SEARCH_PAGE1_WAIT_MS = 6_000
+_READING_SEARCH_PAGE1_WAIT_MS = 20_000
 _READING_SEARCH_FOLLOW_WAIT_MS = 20_000
 _READING_SEARCH_POLL_SECONDS = 0.1
 _MAX_READING_SEARCH_OWNERS = 1024
@@ -494,10 +494,15 @@ def _third_party_snapshot_items(
     *,
     base_api: str,
 ) -> tuple[list[dict], dict | None]:
+    # 官方源参与普通搜索开关：开（平台自有官方源实时直读）时快照包含官方源结果。
+    try:
+        include_official = bool(AppConfig.get().search.official_source_in_normal_search)
+    except Exception:
+        include_official = False
     snapshot = search_service.session_snapshot(
         job_id,
         base_api=base_api,
-        include_official_sources=False,
+        include_official_sources=include_official,
     )
     if not isinstance(snapshot, dict):
         return [], None
