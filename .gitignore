@@ -58,6 +58,10 @@ plugins/sources/official/*
 !plugins/sources/official/qimao_video/**
 !plugins/sources/official/fanqie_novel/
 !plugins/sources/official/fanqie_novel/**
+!plugins/sources/official/fanqie_audio/
+!plugins/sources/official/fanqie_audio/**
+plugins/sources/official/fanqie_audio/**/__pycache__/
+plugins/sources/official/fanqie_audio/**/*.py[cod]
 plugins/sources/official/qidian_com_web/**/__pycache__/
 plugins/sources/official/qimao_novel/**/__pycache__/
 plugins/sources/official/qimao_audio/**/__pycache__/

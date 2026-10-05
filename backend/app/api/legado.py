@@ -101,7 +101,6 @@ def _require_third_party_plugin(
     if (
         not plugin
         or not plugin.metadata.enabled
-        or plugin.metadata.is_licensed_source()
         or capability not in plugin.capabilities
     ):
         raise HTTPException(status_code=404, detail=f"{label}不存在")

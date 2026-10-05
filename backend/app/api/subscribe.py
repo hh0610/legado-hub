@@ -218,12 +218,12 @@ def _third_party_search_source_ids(search_service: SearchJobService) -> list[str
         include_official = bool(AppConfig.get().search.official_source_in_normal_search)
     except Exception:
         include_official = False
+    # 开关开：官方+第三方全部参与；关：仅第三方。
     return [
         plugin.metadata.id
         for plugin in plugins
         if "search" in plugin.capabilities
         and (include_official or not plugin.metadata.is_official_source())
-        and not plugin.metadata.is_licensed_source()
     ]
 
 
