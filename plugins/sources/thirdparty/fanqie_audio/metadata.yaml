@@ -43,6 +43,8 @@ content:
   kind: audio
   paid: not_supported
   encryption: crypt_manager_v2
+  streamDomains:
+    - fqnovelvod.com
 rateLimit:
   perHostConcurrency: 1
   minIntervalMs: 1200

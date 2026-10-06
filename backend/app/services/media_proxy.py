@@ -326,6 +326,17 @@ async def open_media_stream(
         else:
             request = client.build_request("GET", upstream_url, headers=headers)
             response = await client.send(request, stream=True)
+        if response.status_code == 403 and "Referer" in headers:
+            # Some media CDNs (e.g. fanqie vod) reject any Referer, while
+            # hotlink protection normally rejects a *missing* Referer — so
+            # keep the first attempt as-is and retry once without it.
+            await response.aclose()
+            headers = {k: v for k, v in headers.items() if k != "Referer"}
+            if _is_playlist_url(upstream_url, ""):
+                response = await client.get(upstream_url, headers=headers)
+            else:
+                request = client.build_request("GET", upstream_url, headers=headers)
+                response = await client.send(request, stream=True)
     except (httpx.HTTPError, socket.gaierror, OSError) as exc:
         await client.aclose()
         raise MediaProxyError(f"媒体获取失败: {exc}", status_code=502) from exc

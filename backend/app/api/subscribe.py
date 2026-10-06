@@ -17,6 +17,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 
+from app.core.app_config import AppConfig
 from app.core.legado_source import generate_legado_source
 from app.services.aggregate_processor import AggregateProcessor
 from app.services.aggregate_virtual_source import VIRTUAL_SOURCE_ID, unpack_aggregate_chapter_url
@@ -212,8 +213,6 @@ def _get_legado_search_service() -> SearchJobService:
 def _third_party_search_source_ids(search_service: SearchJobService) -> list[str]:
     scheduler = search_service.scheduler
     plugins = scheduler._search_priority_plugins(scheduler._enabled_plugins())
-    from app.core.app_config import AppConfig
-
     try:
         include_official = bool(AppConfig.get().search.official_source_in_normal_search)
     except Exception:
@@ -552,15 +551,28 @@ async def _wait_for_legado_search(
             live = getattr(session, "live_items", None) or []
             if isinstance(live, list) and live:
                 if not known:
-                    return "ready"
-                for item in live:
-                    if not isinstance(item, dict):
-                        continue
-                    book_id = _item_book_id(
-                        item, base_api=base_api, allowed_source_ids=allowed
-                    )
-                    if book_id and book_id not in known:
-                        return "ready"
+                    # "Ready" must mean a *visible* result (one that survives the
+                    # score/source filters). Raw live items include sub-threshold
+                    # rows; returning on those made the next page flip report an
+                    # empty batch with liveSearchPending=False, so Reading stopped
+                    # paging before slower sources ever landed.
+                    for item in live:
+                        if (
+                            isinstance(item, dict)
+                            and _item_book_id(
+                                item, base_api=base_api, allowed_source_ids=allowed
+                            )
+                        ):
+                            return "ready"
+                else:
+                    for item in live:
+                        if not isinstance(item, dict):
+                            continue
+                        book_id = _item_book_id(
+                            item, base_api=base_api, allowed_source_ids=allowed
+                        )
+                        if book_id and book_id not in known:
+                            return "ready"
         remaining = deadline - loop.time()
         if remaining <= 0:
             return "deadline"
@@ -1362,13 +1374,6 @@ async def _legado_search_response(
                     "liveSearchPending": pending,
                 }
 
-            logger.info(
-                "LEGADO-SEARCH-DEBUG page1: batch=%s lib=%s snapSrcItems=%s snapStatus=%s jobSources=%s",
-                len(batch), len(library_items),
-                (snapshot or {}).get("sourceItemCount"),
-                (snapshot or {}).get("status"),
-                len(job.sources or []),
-            )
             return _payload(
                 keyword=keyword,
                 page=page,
