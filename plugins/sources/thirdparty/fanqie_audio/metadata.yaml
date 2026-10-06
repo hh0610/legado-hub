@@ -1,6 +1,6 @@
 contractVersion: "1.0"
-id: fanqie_novel
-name: 番茄小说
+id: fanqie_audio
+name: 番茄听书
 author: Yunwei
 version: 0.2.0
 type: source
@@ -19,7 +19,20 @@ capabilities:
   - toc
   - chapter
   - chapter_reviews
-  - book_reviews
+ui:
+  - title: 听书设置
+    description: 音色与签名服务；值经 ctx.settings 注入插件。
+    items:
+      - type: select
+        id: listen_voice
+        label: 听书音色
+        choices: [真人主播, 升级版, 双角色对话, 成熟大叔音升级版, 成熟大叔音, 甜美少女音, 开朗青年音, 清亮青叔音, 温柔淑女音]
+        default: 真人主播
+      - type: text
+        id: signer_base
+        label: 离线签名服务地址
+        default: http://192.168.31.5:8787
+        help: unidbg 六神签名服务，留空用默认。
 auth:
   mode: none
   loginUrl: ""
@@ -27,6 +40,7 @@ auth:
   cookieDomains: []
 content:
   access: free
+  kind: audio
   paid: not_supported
   encryption: crypt_manager_v2
 rateLimit:
@@ -43,13 +57,12 @@ accessStrategy:
   toc: api
   chapter: api
 tags:
-  - official
   - json-api
   - mobile-api
   - signed
   - encrypted
 sourceSeed:
   type: manual
-  upstreamId: fanqie
+  upstreamId: fanqie-audio
   upstreamFile: ""
   upstreamCommit: ""

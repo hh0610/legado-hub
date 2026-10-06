@@ -1,6 +1,6 @@
 contractVersion: "1.0"
-id: qimao_novel
-name: 七猫小说
+id: qimao_video
+name: 七猫短剧
 author: LegadoHub-RE
 version: 0.1.0
 type: source
@@ -8,15 +8,12 @@ domains:
   - wtzw.com
 baseUrls:
   - https://api-bc.wtzw.com
-  - https://api-ks.wtzw.com
-  - https://xiaoshuo.wtzw.com
+  - https://api-gw.wtzw.com
 capabilities:
   - search
   - detail
   - toc
   - chapter
-  - chapter_reviews
-  - book_reviews
 auth:
   mode: none
   loginUrl: ""
@@ -24,9 +21,11 @@ auth:
   cookieDomains: []
 content:
   access: mixed
-  kind: text
+  kind: video
+  streamDomains:
+    - wtzw.com
 tags:
-  - official
+  - video
   - json-api
   - android-app
 enabled: true
@@ -48,6 +47,6 @@ ui:
       - { type: button, id: guest_reset, label: 重置游客身份, action: ui_reset_identity }
 sourceSeed:
   type: manual
-  upstreamId: qimao-novel
+  upstreamId: qimao-video
   upstreamFile: ""
   upstreamCommit: ""

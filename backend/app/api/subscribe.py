@@ -1362,6 +1362,13 @@ async def _legado_search_response(
                     "liveSearchPending": pending,
                 }
 
+            logger.info(
+                "LEGADO-SEARCH-DEBUG page1: batch=%s lib=%s snapSrcItems=%s snapStatus=%s jobSources=%s",
+                len(batch), len(library_items),
+                (snapshot or {}).get("sourceItemCount"),
+                (snapshot or {}).get("status"),
+                len(job.sources or []),
+            )
             return _payload(
                 keyword=keyword,
                 page=page,
