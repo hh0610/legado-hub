@@ -465,9 +465,21 @@ def _folded_list(
     close_label: str = "收起",
     auto_load: bool = False,
 ) -> str:
-    if not items:
+    if not items and not auto_load:
         return _empty_state(empty_message)
     visible_count = max(1, visible_count)
+    auto_list_attr = ' data-auto-load-list="true"' if auto_load else ""
+    container = (
+        f'<div class="fold-list" id="{html.escape(list_id, quote=True)}" data-fold-list{auto_list_attr} '
+        f'data-visible-count="{visible_count}">'
+        + "".join(items)
+        + '</div>'
+    )
+    if not items:
+        # 自动分页列表必须每页都保留容器：阅读端 loadNext 会从后续响应里取
+        # #<list id> 并追加其子节点，源侧"hasMore=true 但本页 0 条"是正常结果
+        # （起点评论数常大于可取回数），不能把容器换成空态段落。
+        return container + _empty_state(empty_message)
     toggle = ""
     if len(items) > visible_count:
         auto_toggle_attr = ' data-auto-fold-toggle="true"' if auto_load else ""
@@ -478,14 +490,7 @@ def _folded_list(
             f'data-open-label="{html.escape(open_label, quote=True)}" '
             f'data-close-label="{html.escape(close_label, quote=True)}">{html.escape(open_label)}</button>'
         )
-    auto_list_attr = ' data-auto-load-list="true"' if auto_load else ""
-    return (
-        f'<div class="fold-list" id="{html.escape(list_id, quote=True)}" data-fold-list{auto_list_attr} '
-        f'data-visible-count="{visible_count}">'
-        + "".join(items)
-        + '</div>'
-        + toggle
-    )
+    return container + toggle
 
 
 def _pagination_nav(
@@ -1463,9 +1468,10 @@ async function loadNext(panel = activePanel()) {
     const listId = currentNav?.dataset.listId || "";
     const currentList = listId ? document.getElementById(listId) : null;
     const sourceList = listId ? source.getElementById(listId) : null;
-    if (!sourcePanel || !currentList || !sourceList) throw new Error("评论分页结构不完整");
+    if (!sourcePanel || !currentList) throw new Error("评论分页结构不完整");
 
-    appendUnique(currentList, sourceList);
+    /* 后续页可能合法地没有新评论行：这是列表末尾，不是传输失败。 */
+    if (sourceList) appendUnique(currentList, sourceList);
     bindReplyToggles(currentList);
     bindFoldToggles(currentList);
     loadedUrls.add(link.href);

@@ -374,3 +374,49 @@ def test_reading_disabled_plugin_chapter_does_not_use_cached_content(fixture_cli
     chapter_res = fixture_client.get(f"/api/legado/chapter/{chapter_id}")
 
     assert chapter_res.status_code == 404
+
+
+def test_auto_paginated_lists_keep_container_when_a_follow_up_page_is_empty():
+    """空的后续页也必须保留列表容器。
+
+    阅读端 loadNext 会从每个分页响应里取 `#<list id>` 并追加其子节点。源侧
+    "hasMore=true 但本页 0 条"是正常结果（起点评论数常大于可取回数），渲染器
+    若把容器换成空态段落，客户端会在 200 正常响应下抛"评论分页结构不完整"，
+    面板显示"网络错误，点击重试"。
+    """
+    from lxml import html
+
+    from app.services.reading_reviews import render_chapter_reviews_html
+
+    reviews = {
+        "chapterEnd": [],
+        "chapterEndHot": [],
+        "hotParagraphReviews": [
+            {
+                "matchedText": "第一段正文",
+                "paragraphText": "第一段正文",
+                "matchedParagraphIndex": 0,
+                "matchedParagraphCount": 1,
+                "paragraphId": 7,
+                "commentCount": 12,
+                "topReviews": [],
+            }
+        ],
+        "summary": {"totalReviews": 12, "chapterEndCount": 0},
+    }
+    empty_page = {
+        "comments": [],
+        "totalCount": 12,
+        "page": 2,
+        "pageSize": 10,
+        "hasMore": False,
+    }
+
+    paragraph_view = render_chapter_reviews_html(
+        chapter_title="测试",
+        reviews=reviews,
+        review_view_url="/reviews/view",
+        selected_paragraph_id=7,
+        paragraph_detail=empty_page,
+    )
+    assert html.fromstring(paragraph_view).get_element_by_id("paragraph-comments-7") is not None
