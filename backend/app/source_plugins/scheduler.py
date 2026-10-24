@@ -746,10 +746,13 @@ class PluginScheduler:
     @staticmethod
     def _paged_review_result(raw: dict[str, Any], **extra: Any) -> dict[str, Any]:
         comments = raw.get("comments", []) if isinstance(raw.get("comments"), list) else []
+        replies = raw.get("replies", []) if isinstance(raw.get("replies"), list) else []
         return {
             "implemented": True,
             **extra,
             "comments": comments,
+            "replies": replies,
+            "rootReview": raw.get("rootReview") if isinstance(raw.get("rootReview"), dict) else None,
             "hotComments": raw.get("hotComments", []),
             "normalComments": raw.get("normalComments", []),
             "totalCount": raw.get("totalCount", len(comments)),

@@ -581,7 +581,25 @@ async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | No
                     )
                 except Exception:
                     logger.warning("Unable to append book reviews card for %s", chapter_id, exc_info=True)
+            else:
+                # 直读书源:插件 chapter_reviews 携带 bookUrl 时同样追加书评区入口。
+                try:
+                    direct_book_url = str((reviews or {}).get("bookUrl") or "")
+                    plugin = catalog.scheduler._plugins.get(source_id)
+                    if direct_book_url and plugin and "book_reviews" in plugin.capabilities:
+                        from app.services.legado_max_bubbles import link_card
+
+                        direct_book_id = encode_book_id(source_id, direct_book_url)
+                        card_url = _signed_reviews_page_url(
+                            base_api, f"/api/legado/book/{urllib.parse.quote(direct_book_id, safe='')}/reviews/view"
+                        )
+                        card = link_card("书评区", "评分与热门评论", card_url)
+                        response["content"] = response["content"].rstrip() + "\n\n" + card
+                except Exception:
+                    logger.warning("Unable to append book reviews card for %s", chapter_id, exc_info=True)
         return response
+
+
 @router.get("/chapter/{chapter_id}/reviews")
 async def get_chapter_reviews(request: Request, chapter_id: str) -> dict:
     user = auth_service.require_reading_user(request, touch=False)

@@ -382,8 +382,10 @@ class Source:
                     "commentCount": item.get("comment_count") or len(item.get("comment_list") or []) or 0,
                     "hotCommentCount": item.get("hot_count") or 0,
                 })
+        book_url = f"https://api-ks.wtzw.com/qm/book/{book_id}/0" if book_id else ""
         return {
             "paragraphs": {},
+            "bookUrl": book_url,
             "chapterEnd": chapter_end,
             "chapterEndHot": [],
             "authorReviews": [],
@@ -586,6 +588,7 @@ class Source:
         replies = [self._comment_item(x) for x in (data.get("reply_list") or data.get("comment_list") or []) if isinstance(x, dict)]
         return {
             "comments": replies,
+            "replies": replies,
             "totalCount": len(replies),
             "hasMore": False,
             "rootReviewId": str(root_review_id),
