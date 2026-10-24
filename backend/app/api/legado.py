@@ -578,6 +578,7 @@ async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | No
             try:
                 with reading_access_limiter.guard(user.user_id, "reviews"):
                     reviews = await _chapter_reviews(chapter_id, catalog=catalog)
+
                 view_url = _signed_reviews_page_url(base_api, f"/api/legado/chapter/{chapter_id}/reviews/view")
                 response["content"] = decorate_legado_max_content(
                     response["content"], reviews, view_url=view_url
