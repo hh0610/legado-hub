@@ -1215,7 +1215,7 @@ def test_legado_reads_only_published_shared_content_without_db_side_effects(
     assert "response.body()" not in source["loginUrl"]
     assert "response.code()" not in source["loginUrl"]
     assert "java.log" not in source["loginUrl"]
-    assert "data:contentUrl;base64" in source["ruleToc"]["chapterUrl"]
+    assert "data:contentUrl;base64" in source["ruleToc"]["chapterList"]
     assert "type: 'legadoHub'" in source["ruleToc"]["chapterUrl"]
     assert "qingci" not in source["ruleToc"]["chapterUrl"].lower()
     assert "java.hexDecodeToString(payload)" in source["ruleContent"]["content"]
