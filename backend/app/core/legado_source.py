@@ -702,22 +702,10 @@ def _build_source(
             "canReName": "1",
         },
         "ruleToc": {
-            # 书型权威盖章放目录阶段（书山聚合验证可用的模式）：目录抓取时
-            # book 是已入库的活对象，此处改动随目录保存落库；详情 init 阶段
-            # 的对象生命周期依赖阅读端保存链路，不可靠。payload.contentType
-            # 由 /api/legado/book/{id}/toc 按插件 content.kind 下发。
-            "chapterList": (
-                "@js:\n"
-                'var payload = String(result || "");\n'
-                "var data = {};\n"
-                "try { data = JSON.parse(payload); } catch (e0) {}\n"
-                'var kind = String(data.contentType || "text");\n'
-                "var mask = 4 | 8 | 32 | 64 | 128;\n"
-                'var base = kind === "audio" ? 32 : (kind === "video" ? 4 : 8);\n'
-                "try { book.type = ((book.type & ~mask) | base) >>> 0; } catch (e1) {}\n"
-                'try { book.mediaType = kind === "audio" ? 1 : (kind === "video" ? 3 : 0); } catch (e2) {}\n'
-                "data.chapters || [];"
-            ),
+            # 目录解析保持 JSONPath（$.chapters 一直工作正常）；书型盖章由
+            # 详情 init 完成（阅读C 实测：封面音频角标+分类探针均生效）。
+            # payload.contentType 仍由 /api/legado/book/{id}/toc 下发备用。
+            "chapterList": "$.chapters",
             "chapterName": "$.title",
             "chapterUrl": (
                 "<js>\n"
