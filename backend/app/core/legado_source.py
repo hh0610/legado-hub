@@ -601,6 +601,8 @@ def _book_info_init_rule() -> str:
         'var kind = String(data.contentType || "text");\n'
         'if (kind === "video") { try { book.type = (book.type | 4) >>> 0; book.mediaType = 3; } catch (e1) {} }\n'
         'else if (kind === "audio") { try { book.type = (book.type | 32) >>> 0; book.mediaType = 1; } catch (e2) {} }\n'
+        'try { if (kind === "audio") { data.kind = String(data.kind || "") + "·有声书"; } '
+        'else if (kind === "video") { data.kind = String(data.kind || "") + "·视频书"; } } catch (e3) {}\n'
         "JSON.stringify(data);"
     )
 
