@@ -92,11 +92,15 @@ apply_runtime_ownership() {
 seed_plugin_directory() {
     seed=$1
     target=$2
+    other_target=$3
     ensure_dir "$target"
     for source in "$seed"/*; do
         [ -d "$source" ] || continue
         name=$(basename "$source")
         [ -e "$target/$name" ] && continue
+        # 同名插件目录已存在于另一来源（official/thirdparty 互为备份时宿主
+        # 挂载可能只放其一）：跳过，避免加载器撞重复插件 ID 崩溃。
+        [ -e "$other_target/$name" ] && continue
         cp -R "$source" "$target/$name"
         if is_root; then
             chown -R "${PUID}:${PGID}" "$target/$name" 2>/dev/null || true
@@ -105,8 +109,8 @@ seed_plugin_directory() {
 }
 
 seed_plugin_sources() {
-    seed_plugin_directory "$thirdparty_seed" "$thirdparty_target"
-    seed_plugin_directory "$official_seed" "$official_target"
+    seed_plugin_directory "$thirdparty_seed" "$thirdparty_target" "$official_target"
+    seed_plugin_directory "$official_seed" "$official_target" "$thirdparty_target"
 }
 
 as_app_user() {
