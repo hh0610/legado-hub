@@ -158,6 +158,9 @@ class Source:
     last_modified = "2026-10-01"
 
     def __init__(self):
+        # chapter_id -> (content_md5, {md5(line)[:8] -> 段落序号})；段评锚定用。
+        # 有界：最多保留 32 章，超出丢弃最旧（OrderedDict 语义用 dict 有序性）。
+        self._paragraph_anchors: dict[str, tuple[str, dict[str, int]]] = {}
         self._device = {
             "uuid": str(uuid.uuid4()),
             "device_id": _date_stamp() + _random_hex(48),
@@ -285,10 +288,14 @@ class Source:
     # ---- 章评 / 段评 / 书评（api-cmnt.wtzw.com，逆向已实测） ----------------
 
     async def chapter_reviews(self, ctx, chapter_url: str) -> dict:
-        """章评列表 + 段评（有 chapter_md5 时）映射为阅读C/Max 气泡数据。"""
+        """章评列表 + 段评（气泡接口，md5 锚定）映射为阅读C/Max 气泡数据。"""
         book_id, chapter_id, content_md5 = self._review_identity(chapter_url)
         if not book_id or not chapter_id:
             raise ValueError(f"invalid qimao review url: {chapter_url}")
+        # 目录/正文阶段缓存的锚点：chapter_id -> (content_md5, {md5(line)[:8]: 段落序号})
+        cached_md5, paragraph_anchors = self._paragraph_anchors.get(chapter_id, ("", {}))
+        if not content_md5:
+            content_md5 = cached_md5
         first = await self._get(ctx, "https://api-cmnt.wtzw.com/api/v1/chapter-comment/first", {
             "book_id": book_id, "chapter_id": chapter_id, "sort": "", "extra": "",
         })
@@ -312,6 +319,44 @@ class Source:
             })
         hot_paragraph_reviews = []
         if content_md5:
+            # 气泡接口（POST form，无需签名；逆向实测）：每章返回约 80-120 个
+            # {p: md5(段落原始行)[:8], c: 评论数, icon_type}。c>0 的才是有评论的段落。
+            try:
+                bubble_text = await ctx.access.http.fetch_text(
+                    "https://api-cmnt.wtzw.com/api/v1/paragraph/bubbles",
+                    method="POST",
+                    data={"book_id": book_id, "chapters": json.dumps([
+                        {"chapter_id": chapter_id, "chapter_md5": content_md5}
+                    ], ensure_ascii=False)},
+                    headers={**self._headers(), "Content-Type": "application/x-www-form-urlencoded"},
+                )
+                bubble_payload = _parse_payload(bubble_text)
+                chapters_data = (bubble_payload.get("data") or {}).get("chapters") or []
+                bubbles = chapters_data[0].get("bubbles") or [] if chapters_data else []
+            except Exception:
+                bubbles = []
+            for bubble in bubbles:
+                if not isinstance(bubble, dict):
+                    continue
+                try:
+                    comment_count = int(bubble.get("c") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if comment_count <= 0:
+                    continue
+                anchor = paragraph_anchors.get(str(bubble.get("p") or ""))
+                if anchor is None:
+                    continue
+                hot_paragraph_reviews.append({
+                    "paragraphId": anchor,
+                    "matchedParagraphIndex": anchor,
+                    "matchedParagraphCount": 1,
+                    "matchedText": "",
+                    "commentCount": comment_count,
+                    "hotCommentCount": comment_count,
+                })
+        if content_md5 and not hot_paragraph_reviews:
+            # 气泡接口无数据时回退 p-list（部分书目的段评走该接口）。
             plist = await self._get(ctx, "https://api-cmnt.wtzw.com/api/v1/paragraph/inset/p-list", {
                 "book_id": book_id, "chapter_id": chapter_id,
                 "last_paragraph_offset": "0", "next_id": "",
@@ -515,6 +560,19 @@ class Source:
             raise RuntimeError(f"qimao chapter content empty: {payload.get('code')} {str(payload)[:120]}")
         text = _decrypt_content(content_b64, reader_type)
         paragraphs = [p.strip() for p in text.replace("\r\n", "\n").split("\n") if p.strip()]
+        content_md5 = str(data.get("content_md5") or "")
+        if content_md5:
+            # 七猫段评气泡按 md5(段落原始行文本)[:8] 锚定（与 App 一致）。
+            anchors: dict[str, int] = {}
+            stripped_index = 0
+            for line in text.replace("\r\n", "\n").split("\n"):
+                if line.strip():
+                    anchors[hashlib.md5(line.encode("utf-8")).hexdigest()[:8]] = stripped_index
+                    stripped_index += 1
+            self._paragraph_anchors[chapter_id] = (content_md5, anchors)
+            if len(self._paragraph_anchors) > 32:
+                oldest = next(iter(self._paragraph_anchors))
+                self._paragraph_anchors.pop(oldest, None)
         return {
             "sourceId": self.id,
             "title": "",
