@@ -16,6 +16,19 @@
 6. 逐级探测并发和请求间隔，失败时再分别验证 stealth、代理和 browser，最后把实测结果写入 metadata。
 7. 阶段结束后集中运行结构校验、fixture smoke 和真实链路；正式提交前运行仓库完整门禁。
 
+## 有声 / 视频书源（媒体源）
+
+有声书与视频短剧源与文字书源走同一套 `search -> detail -> toc -> chapter` 生命周期，差异集中在章节载荷与元数据声明。基准实现：`plugins/sources/thirdparty/qimao_audio`（有声）、`qimao_video`（短剧）、`fanqie_audio`（带签名服务的有声源）。
+
+1. **元数据声明**：`metadata.yaml` 里设 `content.kind`（`audio` 或 `video`）并填写 `content.streamDomains`（媒体文件实际所在的 CDN 域名列表；播放走媒体代理，代理只放行 `domains`/`baseUrls`/`streamDomains` 内的地址）。七猫基准：音频 CDN 在 `qimao.com` 下、短剧 CDN 在 `wtzw.com` 下，与 API 域名同域即可覆盖；番茄听书的音频 CDN 是独立的 `fqnovelvod.com`，必须显式声明。
+2. **章节载荷**：`content` 恒为空字符串；`format` 设 `audio`/`video`；可播地址放 `mediaUrl`（直链 mp3/mp4 或 m3u8 播放列表均可，同剧集内可混用）；有声与视频都应返回 `durationSeconds`。防盗链、HLS 重写和过期直链全部由媒体代理处理，插件每次 `chapter()` 重新解析当前可播地址即可，不得缓存直链。
+3. **按集组织**：`toc` 返回完整顺序目录，一章即一集；剧集列表从详情/剧集 API 一次性取得后可短期缓存（七猫短剧缓存 `play_list` 按 playlet_id）。
+4. **下架条目**：搜索索引可能包含音频/视频版已下架的书。目录 API 报"不存在/已停止合作"类错误时静默返回空目录并 `ctx.trace()` 记录，不得抛未捕获异常。
+5. **签名服务**：需要设备签名的源（如番茄的 unidbg 六神签名）把签名服务地址做成 `ui` 声明式设置项（见 `fanqie_audio` 的 `signer_base`），默认值指向部署约定地址，插件内通过 `ctx.settings` 读取。
+6. **阅读端行为**：媒体源由宿主聚合进统一书源，阅读端书型（audio/video）自动标记、听书/视频播放器路由和 HLS 兼容全部由生成书源与媒体代理处理，权威规则见[契约的"统一书源在阅读端的媒体规则"](../../architecture/source-plugin-contract.zh-CN.md)。插件作者只需保证 `chapter()` 载荷符合契约。
+
+测试要点：至少验证一本下架音频版的书返回空目录不报错；直链与 m3u8 两种 `mediaUrl` 都取到过；`streamDomains` 覆盖了 `mediaUrl` 的全部主机（否则代理 403）。
+
 ## 订阅就绪门禁
 
 插件通过 `search -> detail -> toc -> chapter` 不代表已经满足订阅要求。正式化前还必须把搜索结果送入宿主订阅映射，确认下列字段不会在订阅时丢失：

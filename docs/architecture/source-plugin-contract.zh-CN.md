@@ -545,6 +545,26 @@ Reading 搜索页应在不先打开详情的情况下获得足够数据：`name`
 - 仅返回 `domains`、`baseUrls` 或 `content.streamDomains` 声明域名内的媒体地址，其他地址会被代理拒绝。
 - 有声书按"集"组织为章节；视频源同理按"集/话"组织，`toc` 仍返回完整顺序目录。
 
+媒体插件实测注意事项（以七猫有声/短剧为基准）：
+
+- `mediaUrl` 可以是直链（mp3/mp4）或 m3u8 播放列表，同一剧集列表内两种可能混用；代理按扩展名/MIME 自动区分直传与重写。
+- CDN 防盗链策略由代理统一处理（部分 CDN 拒绝任何 `Referer`，部分拒绝缺失 `Referer`，代理会自动重试两种组合）；插件不得自行加签名头或伪造 Referer。
+- 媒体直链普遍带时效签名（如 `expire`/`x-expires` 参数），插件不得缓存或复用过期直链；每次 `chapter()` 都应重新解析当前可播地址。
+- 搜索索引可能包含已下架音频/视频版的条目：目录 API 会返回"该书不存在或已停止合作"类错误，插件应静默返回空目录并 `ctx.trace()` 记录原因，不得抛出未捕获异常。
+- 音频章节应尽量返回 `durationSeconds`（听书播放器进度条需要）；视频章节同理返回单集时长。
+
+### 统一书源在阅读端的媒体规则
+
+`content.kind` 为 `audio`/`video` 的插件由宿主生成书源（`app/core/legado_source.py`）聚合进同一条统一书源（`bookSourceType: 0`）。章节级媒体类型通过书籍详情的 `contentType` 字段下发，阅读端书型由生成书源内的规则自动标记，插件无需感知。以下规则已在阅读C（legadoC）实测打通，是统一书源媒体链路的权威实现：
+
+1. **书型自动标记（ruleBookInfo.init）**：详情页初始化 JS 解析详情响应的 `contentType`，将 `audio`/`video` 按位并入 `book.type`（audio=32、video=4、text=8；只清除内容类型位 4|8|32|64|128，保留阅读器状态位）并同步 `book.mediaType`（阅读C 的稳定媒体标识，audio=1/video=3/text=0）。不要整值覆盖 `book.type`，会清掉 `updateError` 等状态位。
+2. **目录规则（ruleToc.chapterList，书山模式）**：章节字段必须在目录 JS 内全部构造完成（`{title, url, isVip, isPay, updateTime}`），`chapterName`/`chapterUrl` 等子规则只用裸字段引用。禁止让后续 JS 规则从 JS 返回的元素对象上再取字段——元素对象经 `setContent` 字符串化后取值全部为空（实测 992 条目录全部"未获取到url"）。章节 URL 沿用 `data:contentUrl;base64,<b64>,{"type":"legadoHub"}` 编码，这是正文规则十六进制解析依赖的通用机制。书型盖章同样在目录 JS 内执行一次（目录抓取时 `book` 是已入库对象，改动必然随目录保存落库）。
+3. **正文规则（ruleContent）**：章节载荷 `format=audio` 时返回 `mediaUrl` 直链（听书播放器直接播放）；`format=video` 时返回 `mediaUrl + "&concat=1"`（见下条）。`mediaUrl` 缺失时按文本兜底。
+4. **媒体代理 concat 模式**：阅读C 的视频内核不带 HLS 模块（`media3-exoplayer-hls` 未打进其构建），m3u8 直接喂会"播放地址不可用"。代理在 `concat=1` 参数下把 AES-128 加密的 HLS 播放列表在服务端解密并逐分片拼接为单条 `video/mp2t` 渐进流，任何渐进内核都能播放。该模式是代理内部扩展，不改变插件契约。
+5. **视频播放入口**：`book.type` 含 video 时阅读C 自动路由到视频播放器（含章节列表与倍速），播放地址由播放器自行运行正文规则解析——正文规则必须返回纯播放地址，不得返回提示文字或调用 `openVideoPlayer`（会叠加打开第二层播放器）。
+6. **客户端差异**：阅读C 是当前唯一具备完整媒体链路的参考客户端（封面媒体角标、听书播放器、视频播放器、`java.openVideoPlayer`）；阅读3.0 官方版与阅读Max 没有 `java.openVideoPlayer`，视频章节只会显示占位文字。音频直链在三个客户端均按章节内容直链处理。
+7. **正文缓存**：阅读端会缓存章节解析结果，书源规则变更后必须删除书籍重新添加（或清除章节缓存）才会生效；媒体地址是打开章节时实时解析的，过期签名不会因缓存复用。
+
 书评能力（可选，`book_reviews`）：
 
 ```python

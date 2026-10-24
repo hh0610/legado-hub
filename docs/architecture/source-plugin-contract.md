@@ -609,6 +609,64 @@ Media chapter rules:
 - Audiobooks organize episodes as chapters; video sources likewise organize
   episodes/segments. `toc` still returns the complete ordered catalog.
 
+Media-plugin field notes (benchmarked against the Qimao audio / short-drama
+sources):
+
+- `mediaUrl` may be a direct link (mp3/mp4) or an m3u8 playlist; both may
+  appear inside one episode list. The proxy distinguishes passthrough vs
+  playlist rewriting automatically.
+- CDN hotlink policies are handled by the proxy (some CDNs reject any
+  `Referer`, some reject a missing one; the proxy retries both combos).
+  Plugins must not add signature headers or fake Referers themselves.
+- Media direct links carry expiring signatures (`expire` / `x-expires`);
+  re-resolve the current playable address on every `chapter()` call and never
+  cache or reuse expired links.
+- The search index may include entries whose audio/video edition has been
+  withdrawn: the catalog API then answers "book not found / cooperation
+  stopped". Return an empty chapter list silently and record the reason via
+  `ctx.trace()`; never raise an uncaught exception.
+
+### Unified-source media rules on the reader side
+
+`content.kind` = `audio`/`video` plugins are aggregated by the host into one
+unified legado source (`bookSourceType: 0`). Chapter-level media type is
+delivered through the book detail's `contentType` field; the reader-side book
+type is stamped automatically by rules inside the generated source. These
+rules are verified end-to-end on legadoC and are the authoritative
+implementation:
+
+1. **Book-type stamping (ruleBookInfo.init)**: parse `contentType` and OR it
+   into `book.type` bitwise (audio=32, video=4, text=8; clear only the
+   content-type bits 4|8|32|64|128, preserve reader state flags) and sync
+   `book.mediaType` (legadoC stable media id: audio=1, video=3, text=0).
+   Never overwrite `book.type` wholesale.
+2. **Toc rule (ruleToc.chapterList, the Shushan pattern)**: build every
+   chapter field inside the toc JS (`{title, url, isVip, isPay, updateTime}`)
+   and reference them from `chapterName`/`chapterUrl` as bare fields. Never
+   let later JS rules read fields off JS-returned element objects.
+   Chapter URLs keep the `data:contentUrl;base64,...` encoding. Stamp the
+   book type inside the toc JS as well (the book is already persisted there).
+3. **Content rule**: `format=audio` returns `mediaUrl` (the audio player plays
+   the direct link); `format=video` returns `mediaUrl + "&concat=1"`.
+4. **Media proxy concat mode**: legadoC's video core has no HLS module
+   (`media3-exoplayer-hls` is not in its build), so a raw m3u8 fails with
+   "play URL unavailable". With `concat=1` the proxy decrypts the AES-128 HLS
+   playlist server-side and concatenates the segments into one progressive
+   `video/mp2t` stream playable by any progressive core.
+5. **Video entry**: with the video type bit set, legadoC routes the book to
+   its video player (chapter list + speed control); the player resolves play
+   URLs by running the content rule itself, so the rule must return a pure
+   play URL — no placeholder text and no `openVideoPlayer` side calls.
+6. **Client differences**: legadoC is the only reference client with the full
+   media chain (cover badge, audio player, video player,
+   `java.openVideoPlayer`). Official legado 3.0 and Legado Max lack
+   `java.openVideoPlayer`, so video chapters only show placeholder text there.
+   Audio direct links behave as chapter content links in all three clients.
+7. **Content cache**: the reader caches parsed chapter content; after source
+   rule changes the book must be removed and re-added (or the chapter cache
+   cleared). Media addresses are resolved live per chapter open, so expired
+   signatures are never reused through the cache.
+
 Book reviews capability (optional, `book_reviews`):
 
 ```python
