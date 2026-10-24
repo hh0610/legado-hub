@@ -312,6 +312,7 @@ class Source:
             chapter_end.append({
                 "id": str(item.get("comment_id") or ""),
                 "userName": str(user.get("nickname") or item.get("nickname") or "书友"),
+                "avatar": str(user.get("avatar") or item.get("avatar") or ""),
                 "content": str(item.get("content") or ""),
                 "likeCount": item.get("like_count") or 0,
                 "time": str(item.get("comment_time") or ""),

@@ -768,12 +768,14 @@ _REVIEW_CSS = """
   --quote-line:#d0d1d6;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;overflow:hidden}
+html,body{margin:0}
 body{
   min-width:320px;
   background:var(--paper);
   color:var(--ink);
   -webkit-text-size-adjust:100%;
+  overflow-y:auto;
+  overscroll-behavior-y:contain;
 }
 button{font:inherit;letter-spacing:0;color:inherit}
 a{color:var(--link)}
@@ -781,7 +783,7 @@ a{color:var(--link)}
 .review-sheet{
   display:flex;
   width:min(720px,100%);
-  height:100%;
+  min-height:100%;
   margin:0 auto;
   flex-direction:column;
   background:var(--paper);
@@ -794,6 +796,10 @@ a{color:var(--link)}
   gap:4px;
   padding:0 16px;
   border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:var(--paper);
 }
 .review-tab{
   position:relative;
@@ -831,11 +837,7 @@ a{color:var(--link)}
 .review-tab[aria-selected=true] small{color:var(--muted)}
 
 .sheet-content{
-  min-height:0;
   flex:1;
-  overflow-y:auto;
-  -webkit-overflow-scrolling:touch;
-  touch-action:pan-y;
   padding:0 0 max(12px,env(safe-area-inset-bottom,0px));
 }
 .review-panel{
@@ -1314,7 +1316,7 @@ a{color:var(--link)}
 _REVIEW_SCRIPT = r"""
 const tabs = [...document.querySelectorAll("[data-tab]")];
 const panels = [...document.querySelectorAll("[data-panel]")];
-const scrollRoot = document.querySelector(".sheet-content");
+const scrollRoot = document.scrollingElement || document.documentElement;
 const loadedUrls = new Set();
 let loading = false;
 let observer;
