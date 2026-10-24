@@ -545,25 +545,35 @@ async def get_chapter(request: Request, chapter_id: str, reviewBubbles: str | No
             )
             result = await catalog.chapter(chapter_id)
             if str(result.get("format", "") or "") in {"audio", "video"}:
-                return _public_chapter_response(
+                # 媒体章节也走评论装饰(听书/视频播放页展示本章说与书评入口),
+                # 与文字章节统一收口,不再提前 return。
+                response = _public_chapter_response(
                     result,
                     chapter_id=chapter_id,
                     source_id=source_id,
                     base_api=base_api,
                 )
-            content = await _apply_reading_content_gates(
+            else:
+                content = await _apply_reading_content_gates(
+                    chapter_id=chapter_id,
+                    content=str(result.get("content", "") or ""),
+                    source_id=source_id,
+                    catalog=catalog,
+                )
+                result = {**result, "content": content}
+                response = _public_chapter_response(
+                    result,
+                    chapter_id=chapter_id,
+                    source_id=source_id,
+                    base_api=base_api,
+                )
+        if source_id == VIRTUAL_SOURCE_ID:
+            response = _public_chapter_response(
+                result,
                 chapter_id=chapter_id,
-                content=str(result.get("content", "") or ""),
                 source_id=source_id,
-                catalog=catalog,
+                base_api=base_api,
             )
-            result = {**result, "content": content}
-        response = _public_chapter_response(
-            result,
-            chapter_id=chapter_id,
-            source_id=source_id,
-            base_api=base_api,
-        )
         if reviewBubbles == "1":
             try:
                 with reading_access_limiter.guard(user.user_id, "reviews"):
