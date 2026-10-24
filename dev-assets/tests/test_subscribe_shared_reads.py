@@ -1197,8 +1197,8 @@ def test_legado_reads_only_published_shared_content_without_db_side_effects(
     assert "waitMs" not in source["searchUrl"]
     assert source["exploreUrl"].startswith("已发布书库::@js:")
     assert "/api/subscribe/legado/explore" in source["exploreUrl"]
-    assert source["ruleToc"]["isVip"] == "$.isVip"
-    assert source["ruleToc"]["isPay"] == "$.isPay"
+    assert source["ruleToc"]["isVip"] == "isVip"
+    assert source["ruleToc"]["isPay"] == "isPay"
     login_ui = json.loads(source["loginUi"])
     assert [item["name"] for item in login_ui] == ["订阅", "书库"]
     assert "/api/auth/access/redeem" in source["loginUrl"]
