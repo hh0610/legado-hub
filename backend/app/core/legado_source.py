@@ -28,7 +28,7 @@ from app.core.public_security import (
 # Beta / daily rule ships bump RELEASED_AT_MS only; formal tags bump both.
 _READER_RULE_VERSION = "0.0.32"
 # Last beta marker: book-type stamping moved to the toc rule (书山-proven pattern).
-_READER_RULE_RELEASED_AT_MS = 1792899000000
+_READER_RULE_RELEASED_AT_MS = 1792821420040
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
@@ -702,22 +702,37 @@ def _build_source(
             "canReName": "1",
         },
         "ruleToc": {
-            # 目录解析保持 JSONPath（$.chapters 一直工作正常）；书型盖章由
-            # 详情 init 完成（阅读C 实测：封面音频角标+分类探针均生效）。
-            # payload.contentType 仍由 /api/legado/book/{id}/toc 下发备用。
-            "chapterList": "$.chapters",
-            "chapterName": "$.title",
-            "chapterUrl": (
-                "<js>\n"
-                "var contentUrl = String(result.chapterUrl || '');\n"
-                "try { contentUrl = legadoHubRewriteApiUrl(contentUrl); } catch (e) {}\n"
-                "var metadata = {type: 'legadoHub'};\n"
-                "`data:contentUrl;base64,${java.base64Encode(contentUrl)},${JSON.stringify(metadata)}`;\n"
-                "</js>"
+            # 书山验证模式：书型盖章 + 章节字段都在目录 JS 里构造完成，
+            # chapterName/chapterUrl 用裸字段引用（JS 返回的元素对象不能
+            # 交给后续 JS 规则再取字段——setContent 会把它字符串化，
+            # 实测 992 条全部"未获取到url"）。
+            # url 沿用 data:contentUrl;base64 编码，正文规则的 hexDecode 依赖它。
+            "chapterList": (
+                "@js:\n"
+                'var payload = String(result || "");\n'
+                "var data = {};\n"
+                "try { data = JSON.parse(payload); } catch (e0) {}\n"
+                'var kind = String(data.contentType || "text");\n'
+                "var mask = 4 | 8 | 32 | 64 | 128;\n"
+                'var base = kind === "audio" ? 32 : (kind === "video" ? 4 : 8);\n'
+                "try { book.type = ((book.type & ~mask) | base) >>> 0; } catch (e1) {}\n"
+                'try { book.mediaType = kind === "audio" ? 1 : (kind === "video" ? 3 : 0); } catch (e2) {}\n'
+                "(data.chapters || []).map(function (x) {\n"
+                '    var u = String(x.chapterUrl || "");\n'
+                '    return {\n'
+                '        title: String(x.title || ""),\n'
+                '        url: "data:contentUrl;base64," + java.base64Encode(u) + "," + JSON.stringify({type: "legadoHub"}),\n'
+                "        isVip: !!x.isVip,\n"
+                "        isPay: !!x.isPay,\n"
+                '        updateTime: String(x.updateTime || "")\n'
+                "    };\n"
+                "});"
             ),
-            "isVip": "$.isVip",
-            "isPay": "$.isPay",
-            "updateTime": "$.updateTime",
+            "chapterName": "title",
+            "chapterUrl": "url",
+            "isVip": "isVip",
+            "isPay": "isPay",
+            "updateTime": "updateTime",
         },
         "ruleContent": {
             # Must use legadoHubAjax (jsLib) so chapter fetch carries the same
