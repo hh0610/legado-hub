@@ -313,6 +313,82 @@ class Source:
             return book_id, chapter_id, content_md5
         return "", "", ""
 
+    # ---- 评论扩展（章评分页 / 回复；逆向 v2 接口） --------------------
+
+    async def _post_form(self, ctx, url: str, form: dict) -> dict:
+        await self._login(ctx)
+        text = await ctx.access.http.fetch_text(
+            url, method="POST", data=form, headers=self._headers(),
+        )
+        return _parse_payload(text)
+
+    @staticmethod
+    def _comment_item(item: dict) -> dict:
+        user = item.get("user_info") or {}
+        return {
+            "id": str(item.get("comment_id") or item.get("cmt_id") or ""),
+            "userName": str(user.get("nickname") or item.get("nickname") or "书友"),
+            "avatar": str(user.get("avatar") or item.get("avatar") or ""),
+            "content": str(item.get("content") or ""),
+            "likeCount": item.get("like_count") or item.get("likeCount") or 0,
+            "time": str(item.get("comment_time") or item.get("ctime") or ""),
+            "replyCount": item.get("reply_count") or 0,
+        }
+
+    async def chapter_say(self, ctx, chapter_url: str, *, page: int = 1, page_size: int = 20) -> dict:
+        """章评分页：first(POST) 取热+时间两区，more(GET next_id) 翻页。"""
+        book_id, chapter_id, _md5 = self._review_identity(chapter_url)
+        if not book_id or not chapter_id:
+            return {"comments": [], "totalCount": 0, "hasMore": False, "debug": {"error": "invalid chapter"}}
+        comments: list[dict] = []
+        next_id = ""
+        if page == 1:
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "hot": "0", "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            hot = [x for x in (data.get("hot_zone") or {}).get("comment_list") or [] if isinstance(x, dict)]
+            timed = [x for x in (data.get("time_zone") or {}).get("comment_list") or [] if isinstance(x, dict)]
+            comments = [self._comment_item(x) for x in hot + timed]
+            next_id = str(data.get("next_id") or "")
+        else:
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "hot": "0", "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            next_id = str(data.get("next_id") or "")
+            for _ in range(page - 1):
+                if not next_id:
+                    break
+                more = await self._get(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/more", {
+                    "book_id": book_id, "chapter_id": chapter_id, "next_id": next_id,
+                })
+                mdata = more.get("data") or {}
+                comments.extend(self._comment_item(x) for x in (mdata.get("comment_list") or []) if isinstance(x, dict))
+                next_id = str(mdata.get("next_id") or "")
+        return {
+            "comments": comments if page == 1 else comments,
+            "totalCount": len(comments),
+            "hasMore": bool(next_id),
+            "debug": {"nextId": next_id[:32]},
+        }
+
+    async def review_replies(self, ctx, chapter_url: str, root_review_id: str, *,
+                             page: int = 1, page_size: int = 20, cursor_id: int = 0) -> dict:
+        book_id, chapter_id, _md5 = self._review_identity(chapter_url)
+        if not book_id or not chapter_id:
+            return {"comments": [], "totalCount": 0, "hasMore": False, "debug": {"error": "invalid chapter"}}
+        data = (await self._get(ctx, "https://api-cmnt.wtzw.com/api/v1/comment/detail", {
+            "book_id": book_id, "chapter_id": chapter_id, "comment_id": str(root_review_id),
+        })).get("data") or {}
+        replies = [self._comment_item(x) for x in (data.get("reply_list") or data.get("comment_list") or []) if isinstance(x, dict)]
+        return {
+            "comments": replies,
+            "totalCount": len(replies),
+            "hasMore": False,
+            "rootReviewId": str(root_review_id),
+        }
+
     async def _get(self, ctx, url: str, params: dict) -> dict:
         await self._login(ctx)
         query = {k: str(v) for k, v in params.items()}

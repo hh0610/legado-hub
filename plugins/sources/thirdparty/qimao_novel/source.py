@@ -158,9 +158,9 @@ class Source:
     last_modified = "2026-10-01"
 
     def __init__(self):
-        # chapter_id -> (content_md5, {md5(line)[:8] -> 段落序号})；段评锚定用。
+        # chapter_id -> (content_md5, {md5(line)[:8] -> (段落序号, 段落文本)})；段评锚定用。
         # 有界：最多保留 32 章，超出丢弃最旧（OrderedDict 语义用 dict 有序性）。
-        self._paragraph_anchors: dict[str, tuple[str, dict[str, int]]] = {}
+        self._paragraph_anchors: dict[str, tuple[str, dict[str, tuple[int, str]]]] = {}
         self._device = {
             "uuid": str(uuid.uuid4()),
             "device_id": _date_stamp() + _random_hex(48),
@@ -347,11 +347,13 @@ class Source:
                 anchor = paragraph_anchors.get(str(bubble.get("p") or ""))
                 if anchor is None:
                     continue
+                paragraph_index, paragraph_text = anchor
                 hot_paragraph_reviews.append({
-                    "paragraphId": anchor,
-                    "matchedParagraphIndex": anchor,
+                    "paragraphId": paragraph_index,
+                    "matchedParagraphIndex": paragraph_index,
                     "matchedParagraphCount": 1,
-                    "matchedText": "",
+                    "matchedText": paragraph_text,
+                    "paragraphText": paragraph_text,
                     "commentCount": comment_count,
                     "hotCommentCount": comment_count,
                 })
@@ -422,6 +424,171 @@ class Source:
             },
             "items": items,
             "debug": {},
+        }
+
+    # ---- 评论扩展（章评分页 / 段评列表 / 页热评 / 回复；逆向 v2 接口） ----
+
+    async def _post_form(self, ctx, url: str, form: dict) -> dict:
+        await self._login(ctx)
+        text = await ctx.access.http.fetch_text(
+            url, method="POST", data=form, headers=self._headers(),
+        )
+        return _parse_payload(text)
+
+    @staticmethod
+    def _comment_item(item: dict) -> dict:
+        user = item.get("user_info") or {}
+        return {
+            "id": str(item.get("comment_id") or item.get("cmt_id") or ""),
+            "userName": str(user.get("nickname") or item.get("nickname") or "书友"),
+            "avatar": str(user.get("avatar") or item.get("avatar") or ""),
+            "content": str(item.get("content") or ""),
+            "likeCount": item.get("like_count") or item.get("likeCount") or 0,
+            "time": str(item.get("comment_time") or item.get("ctime") or ""),
+            "replyCount": item.get("reply_count") or 0,
+        }
+
+    @staticmethod
+    def _comment_zones(data: dict) -> tuple[list[dict], list[dict], int]:
+        hot = [x for x in (data.get("hot_zone") or {}).get("comment_list") or [] if isinstance(x, dict)]
+        time_zone = [x for x in (data.get("time_zone") or {}).get("comment_list") or [] if isinstance(x, dict)]
+        try:
+            total = int(data.get("time_zone", {}).get("comment_count") or data.get("hot_zone", {}).get("comment_count") or len(hot) + len(time_zone))
+        except (TypeError, ValueError):
+            total = len(hot) + len(time_zone)
+        return hot, time_zone, total
+
+    @staticmethod
+    def _para_md5_for_index(paragraph_id: int, anchors: dict[str, tuple[int, str]]) -> str:
+        for md5_prefix, (index, _text) in anchors.items():
+            if index == paragraph_id:
+                return md5_prefix
+        return ""
+
+    async def chapter_say(self, ctx, chapter_url: str, *, page: int = 1, page_size: int = 20) -> dict:
+        """章评分页：first(POST) 取热+时间两区，more(GET next_id) 翻页。"""
+        book_id, chapter_id, _md5 = self._review_identity(chapter_url)
+        if not book_id or not chapter_id:
+            return {"comments": [], "totalCount": 0, "hasMore": False, "debug": {"error": "invalid chapter"}}
+        comments: list[dict] = []
+        next_id = ""
+        if page == 1:
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "hot": "0", "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            hot, timed, _total = self._comment_zones(data)
+            comments = [self._comment_item(x) for x in hot + timed]
+            next_id = str(data.get("next_id") or "")
+        else:
+            # 光标式翻页：逐页推进到目标页（qimao v2 用 next_id 而非偏移）。
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "hot": "0", "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            next_id = str(data.get("next_id") or "")
+            for _ in range(page - 1):
+                if not next_id:
+                    break
+                more = await self._get(ctx, "https://api-cmnt.wtzw.com/api/v2/chapter-comment/more", {
+                    "book_id": book_id, "chapter_id": chapter_id, "next_id": next_id,
+                })
+                mdata = more.get("data") or {}
+                batch = [self._comment_item(x) for x in (mdata.get("comment_list") or []) if isinstance(x, dict)]
+                comments.extend(batch)
+                next_id = str(mdata.get("next_id") or "")
+        start = (page - 1) * page_size
+        window = comments[start:start + page_size] if page == 1 else comments
+        return {
+            "comments": window,
+            "totalCount": len(comments) if page > 1 else len(comments),
+            "hasMore": bool(next_id),
+            "debug": {"nextId": next_id[:32]},
+        }
+
+    async def paragraph_say(self, ctx, chapter_url: str, paragraph_id: int, *,
+                            page: int = 1, page_size: int = 20, cursor_id: int = 0) -> dict:
+        """单段段评列表：v2 paragraph/first + more，paragraph_id 传段落 md5 前缀。"""
+        book_id, chapter_id, _md5 = self._review_identity(chapter_url)
+        anchors = self._paragraph_anchors.get(chapter_id, ("", {}))[1]
+        para_md5 = self._para_md5_for_index(int(paragraph_id), anchors)
+        if not book_id or not chapter_id or not para_md5:
+            return {"comments": [], "totalCount": 0, "hasMore": False,
+                    "debug": {"error": "no paragraph anchor (open the chapter first)"}}
+        comments: list[dict] = []
+        next_id = ""
+        if page == 1:
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/paragraph/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "paragraph_id": para_md5, "hot": "0", "check_cmt_id": "",
+                "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            hot, timed, _total = self._comment_zones(data)
+            comments = [self._comment_item(x) for x in hot + timed]
+            next_id = str(data.get("next_id") or "")
+        else:
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v2/paragraph/first", {
+                "book_id": book_id, "chapter_id": chapter_id,
+                "paragraph_id": para_md5, "hot": "0", "check_cmt_id": "",
+                "exposed_ids": "", "need_common": "0",
+            })).get("data") or {}
+            next_id = str(data.get("next_id") or "")
+            for _ in range(page - 1):
+                if not next_id:
+                    break
+                more = await self._get(ctx, "https://api-cmnt.wtzw.com/api/v2/paragraph/more", {
+                    "book_id": book_id, "chapter_id": chapter_id,
+                    "paragraph_id": para_md5, "hot": "0", "next_id": next_id,
+                })
+                mdata = more.get("data") or {}
+                comments.extend(self._comment_item(x) for x in (mdata.get("comment_list") or []) if isinstance(x, dict))
+                next_id = str(mdata.get("next_id") or "")
+        return {
+            "comments": comments,
+            "totalCount": len(comments),
+            "hasMore": bool(next_id),
+            "paragraphId": int(paragraph_id),
+            "debug": {"paraMd5": para_md5[:16], "nextId": next_id[:32]},
+        }
+
+    async def page_hot_reviews(self, ctx, chapter_url: str, paragraph_ids: list, *,
+                               page: int = 1, page_size: int = 20) -> dict:
+        """页热评：合并当前页各段的段评（每段取前 page_size 条）。"""
+        comments: list[dict] = []
+        total = 0
+        for pid in list(paragraph_ids)[:50]:
+            try:
+                detail = await self.paragraph_say(ctx, chapter_url, int(pid), page=1, page_size=page_size)
+                comments.extend(detail.get("comments") or [])
+                total += len(detail.get("comments") or [])
+            except Exception:
+                continue
+        return {"comments": comments, "totalCount": total, "hasMore": False}
+
+    async def review_replies(self, ctx, chapter_url: str, root_review_id: str, *,
+                             page: int = 1, page_size: int = 20, cursor_id: int = 0) -> dict:
+        """评论回复：段落评论走 v1 paragraph/detail，章评走 v1 comment/detail。"""
+        book_id, chapter_id, _md5 = self._review_identity(chapter_url)
+        if not book_id or not chapter_id:
+            return {"comments": [], "totalCount": 0, "hasMore": False, "debug": {"error": "invalid chapter"}}
+        anchors = self._paragraph_anchors.get(chapter_id, ("", {}))[1]
+        is_paragraph = int(root_review_id or 0) in {idx for idx, _t in anchors.values()} if anchors else False
+        if is_paragraph:
+            para_md5 = self._para_md5_for_index(int(root_review_id), anchors)
+            data = (await self._post_form(ctx, "https://api-cmnt.wtzw.com/api/v1/paragraph/detail", {
+                "book_id": book_id, "comment_id": str(root_review_id),
+                "para_md5": para_md5,
+            })).get("data") or {}
+        else:
+            data = (await self._get(ctx, "https://api-cmnt.wtzw.com/api/v1/comment/detail", {
+                "book_id": book_id, "chapter_id": chapter_id, "comment_id": str(root_review_id),
+            })).get("data") or {}
+        replies = [self._comment_item(x) for x in (data.get("reply_list") or data.get("comment_list") or []) if isinstance(x, dict)]
+        return {
+            "comments": replies,
+            "totalCount": len(replies),
+            "hasMore": False,
+            "rootReviewId": str(root_review_id),
         }
 
     async def _get(self, ctx, url: str, params: dict) -> dict:
@@ -567,7 +734,7 @@ class Source:
             stripped_index = 0
             for line in text.replace("\r\n", "\n").split("\n"):
                 if line.strip():
-                    anchors[hashlib.md5(line.encode("utf-8")).hexdigest()[:8]] = stripped_index
+                    anchors[hashlib.md5(line.encode("utf-8")).hexdigest()[:8]] = (stripped_index, line.strip())
                     stripped_index += 1
             self._paragraph_anchors[chapter_id] = (content_md5, anchors)
             if len(self._paragraph_anchors) > 32:
