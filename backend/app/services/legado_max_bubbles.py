@@ -256,7 +256,7 @@ def decorate_legado_max_content(content: str, reviews: dict, *, view_url: str) -
             continue
         if index < 0 or span not in (1, 2) or paragraph_id < 0 or count <= 0:
             continue
-        url = f"{view_url}?{urlencode({'tab': 'paragraph', 'paragraphId': paragraph_id})}"
+        url = (view_url + "&" if "?" in view_url else view_url + "?") + urlencode({'tab': 'paragraph', 'paragraphId': paragraph_id})
         markers.setdefault(index + span - 1, []).append(_bubble(count, url))
 
     summary = reviews.get("summary") or {}
@@ -275,5 +275,5 @@ def decorate_legado_max_content(content: str, reviews: dict, *, view_url: str) -
     parser.close()
     result = parser.finish()
     if chapter_count > 0:
-        result = result.rstrip() + "\n\n" + _chapter_card(chapter_count, reviews, view_url + "?tab=chapter")
+        result = result.rstrip() + "\n\n" + _chapter_card(chapter_count, reviews, (view_url + "&" if "?" in view_url else view_url + "?") + "tab=chapter")
     return result

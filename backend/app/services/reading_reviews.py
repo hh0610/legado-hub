@@ -281,6 +281,15 @@ def _review_media(review: dict[str, Any]) -> str:
     )
 
 
+def _sheet_url(base: str, query: str) -> str:
+    """Append a query string to a (possibly already signed) view URL.
+
+    签名 URL 已带 ?access=...,再拼 ? 会把后续参数黏进 access 值(实测
+    401/参数丢失);一律用 & 续接。
+    """
+    return f"{base}&{query}" if "?" in base else f"{base}?{query}"
+
+
 def _reply_row(reply: dict[str, Any], *, target_name: str) -> str:
     """Render one compact reply using the same rich identity contract."""
     reply_name = str(reply.get("userName") or "书友")
@@ -379,7 +388,7 @@ def _review_card(
                 query_values: dict[str, Any] = {"tab": "paragraph", "rootReviewId": review_id}
                 if paragraph_id >= -1:
                     query_values["paragraphId"] = paragraph_id
-                reply_url = f"{review_view_url}?{urlencode(query_values)}"
+                reply_url = _sheet_url(review_view_url, urlencode(query_values))
                 reply_url_attr = f' data-reply-url="{html.escape(reply_url, quote=True)}"'
             controls_attr = (
                 f' aria-controls="{html.escape(reply_surface_id, quote=True)}"'
@@ -406,7 +415,7 @@ def _review_card(
     paragraph_href = ""
     if review_view_url and link_to_paragraph and paragraph_id >= 0:
         query = urlencode({"tab": "paragraph", "paragraphId": paragraph_id})
-        paragraph_href = f"{review_view_url}?{query}"
+        paragraph_href = _sheet_url(review_view_url, query)
 
     content_html = _review_content(content)
     text_html = f'<p class="comment-text">{content_html}</p>' if content_html else ""
@@ -511,7 +520,7 @@ def _pagination_nav(
         if cursor:
             previous["cursorId"] = 0
         links.append(
-            f'<a data-previous-page href="{html.escape(review_view_url, quote=True)}?{urlencode(previous)}">上一页</a>'
+            f'<a data-previous-page href="{html.escape(_sheet_url(review_view_url, urlencode(previous)), quote=True)}">上一页</a>'
         )
     if has_more:
         following = {
@@ -522,7 +531,7 @@ def _pagination_nav(
         if cursor:
             following["cursorId"] = int(payload.get("nextCursorId") or 0)
         links.append(
-            f'<a data-next-page href="{html.escape(review_view_url, quote=True)}?{urlencode(following)}">加载更多</a>'
+            f'<a data-next-page href="{html.escape(_sheet_url(review_view_url, urlencode(following)), quote=True)}">加载更多</a>'
         )
     if not links:
         return ""
@@ -586,7 +595,7 @@ def _paragraph_groups(
         quote_jump = ""
         if not is_detail and review_view_url:
             quote_jump = (
-                f' data-paragraph-href="{html.escape(review_view_url + "?" + query, quote=True)}"'
+                f' data-paragraph-href="{html.escape(_sheet_url(review_view_url, query), quote=True)}"'
                 ' role="link" tabindex="0" title="查看该段全部评论"'
             )
         rendered.append(

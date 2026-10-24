@@ -871,6 +871,17 @@ class UserAuthService:
             return token
         return request.cookies.get(SESSION_COOKIE_NAME, "")
 
+    def bearer_session_token(self, request: Request) -> str:
+        """Return the session token only when it arrived as Authorization: Bearer.
+
+        阅读端用书源登录头签名请求;showBrowser 打开的 WebView 只有首请求带
+        该头,页面自身的 fetch(分页/楼中楼)无凭据。已认证的 HTML 响应可把
+        token 以同源 HttpOnly cookie 回发,让 WebView 后续请求自带凭据。
+        """
+        if not request.headers.getlist("authorization"):
+            return ""
+        return self.session_token_from_request(request)
+
     def current_user(self, request: Request, *, touch: bool = True) -> AuthUser | None:
         session_id = self.session_token_from_request(request)
         if not session_id:

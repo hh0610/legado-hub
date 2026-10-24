@@ -751,7 +751,7 @@ async def get_chapter_review_view(
             )
         base_api = get_public_base_url(request)
         review_view_url = _signed_reviews_page_url(base_api, f"/api/legado/chapter/{chapter_id}/reviews/view")
-        return HTMLResponse(
+        response = HTMLResponse(
             render_chapter_reviews_html(
                 chapter_title=str(chapter.get("title") or "本章评论"),
                 reviews=reviews,
@@ -777,6 +777,13 @@ async def get_chapter_review_view(
                 samesite="lax",
                 path="/api/legado",
             )
+        # showBrowser 只给首请求带 Bearer:把已认证会话种为同源 cookie,
+        # 页面内 fetch(分页/楼中楼)凭 cookie 通过鉴权(上游 a4019a9 模式)。
+        from app.core.public_security import request_uses_https
+
+        bearer_token = auth_service.bearer_session_token(request)
+        if bearer_token:
+            auth_service.set_session_cookie(response, bearer_token, secure=request_uses_https(request))
         return response
 
 @router.get("/book/{book_id}/reviews/view", response_class=HTMLResponse)
