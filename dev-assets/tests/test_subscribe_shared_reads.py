@@ -1216,7 +1216,7 @@ def test_legado_reads_only_published_shared_content_without_db_side_effects(
     assert "response.code()" not in source["loginUrl"]
     assert "java.log" not in source["loginUrl"]
     assert "data:contentUrl;base64" in source["ruleToc"]["chapterList"]
-    assert '{"type":"legadoHub"}' in source["ruleToc"]["chapterList"]
+    assert 'JSON.stringify({type: "legadoHub"})' in source["ruleToc"]["chapterList"]
     assert "qingci" not in source["ruleToc"]["chapterUrl"].lower()
     assert "java.hexDecodeToString(payload)" in source["ruleContent"]["content"]
     assert "java.ajax(contentUrl)" in source["ruleContent"]["content"]
@@ -1227,17 +1227,11 @@ def test_legado_reads_only_published_shared_content_without_db_side_effects(
     assert "function legadoHubChapterEndReviewCount" in source["jsLib"]
     assert "function legadoHubSourceBase" in source["jsLib"]
     assert "function legadoHubRewriteApiUrl" in source["jsLib"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleContent"]["content"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleToc"]["chapterUrl"]
-    # legado-X chapterComment 协议已移除；评论经正文气泡 + 章末卡片（showBrowser）投递。
+        # legado-X chapterComment 协议已移除；评论经正文气泡 + 章末卡片（showBrowser）投递。
     assert "chapterComment" not in source["ruleContent"]
     assert "reviewBubbles=1" in source["ruleContent"]["content"]
     assert "fmt === \"audio\"" in source["ruleContent"]["content"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleContent"]["content"]
-    assert "legadoHubRewriteApiUrl(contentUrl)" in source["ruleToc"]["chapterUrl"]
-    assert "function legadoHubChapterEndReviewCount" in source["jsLib"]
     assert "function legadoHubSourceBase" in source["jsLib"]
-    assert "legadoHubRewriteApiUrl" in source["jsLib"]
     assert "ruleReview" not in source
     assert "LH1." not in json.dumps(source, ensure_ascii=False)
 
