@@ -23,8 +23,29 @@ REVIEW_IMAGE_HOST_SUFFIXES = (
     "byteimg.com",
     "bytedance.net",
     "douyinpic.com",
+    "wtzw.com",
+    "qimao.com",
 )
 _INLINE_EMOTICON_RE = re.compile(r"\[fn=(\d+)\]")
+
+
+def _load_qimao_emoticons() -> dict[str, str]:
+    """qimao `[名]` 表情表(逆向 dump 内置 base64 PNG,103 个,无网络依赖)。"""
+    global _QIMAO_EMOTICONS
+    if _QIMAO_EMOTICONS is None:
+        import json as _json
+        from pathlib import Path as _Path
+
+        path = _Path(__file__).resolve().parent.parent / "assets" / "qimao_emoticons.json"
+        try:
+            _QIMAO_EMOTICONS = _json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            _QIMAO_EMOTICONS = {}
+    return _QIMAO_EMOTICONS
+
+
+_QIMAO_EMOTICONS: dict[str, str] | None = None
+_QIMAO_EMOTICON_RE = re.compile(r"\[[^\]\r\n]{1,24}\]")
 _FANQIE_EMOTICON_MAP = {
     "偷笑": "🤭", "吃瓜": "🍉", "大笑": "😄", "笑哭": "😂", "笑": "😄", "哭": "😭",
     "害羞": "😳", "捂脸": "🤦", "酷": "😎", "爱慕": "😍", "飞吻": "😘", "赞": "👍",
@@ -259,7 +280,21 @@ def _review_content(value: Any) -> str:
             return f'<span class="comment-emoji" title="番茄表情 {name}">{emoji}</span>'
         return match.group(0)
 
-    fanqie_done = _FANQIE_EMOTICON_RE.sub(render_fanqie, escaped)
+    qimao_table = _load_qimao_emoticons()
+
+    def render_qimao(match: re.Match[str]) -> str:
+        token = match.group(0)
+        data_uri = qimao_table.get(token)
+        if data_uri:
+            name = token[1:-1]
+            return (
+                f'<img class="comment-emoticon" src="{data_uri}" alt="表情" '
+                f'title="七猫表情 {name}" loading="lazy" decoding="async">'
+            )
+        return token
+
+    qimao_done = _QIMAO_EMOTICON_RE.sub(render_qimao, escaped) if qimao_table else escaped
+    fanqie_done = _FANQIE_EMOTICON_RE.sub(render_fanqie, qimao_done)
     return _INLINE_EMOTICON_RE.sub(
         render_emoticon,
         fanqie_done,
