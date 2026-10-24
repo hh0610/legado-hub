@@ -16,6 +16,7 @@ from starlette.background import BackgroundTask
 from app.services.media_proxy import (
     MediaProxyError,
     open_media_stream,
+    open_video_concat_stream,
     verify_media_token,
 )
 
@@ -24,9 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 @router.get("/stream")
-async def stream_media(request: Request, p: str = "", sig: str = ""):
-    unknown = set(request.query_params.keys()) - {"p", "sig"}
-    repeated = {key for key in ("p", "sig") if len(request.query_params.getlist(key)) > 1}
+async def stream_media(request: Request, p: str = "", sig: str = "", concat: str = ""):
+    unknown = set(request.query_params.keys()) - {"p", "sig", "concat"}
+    repeated = {key for key in ("p", "sig", "concat") if len(request.query_params.getlist(key)) > 1}
     if unknown or repeated or not p or not sig:
         raise HTTPException(status_code=403, detail="媒体地址签名无效")
     try:
@@ -36,11 +37,19 @@ async def stream_media(request: Request, p: str = "", sig: str = ""):
 
     range_header = request.headers.get("range")
     try:
-        media = await open_media_stream(
-            payload["url"],
-            payload["sourceId"],
-            range_header=range_header,
-        )
+        if concat == "1":
+            # HLS 解密拼接模式：把 AES-128 m3u8 拼成单条渐进 TS 流，
+            # 供无 HLS 模块的播放内核（legadoC）直接播放。
+            media = await open_video_concat_stream(
+                payload["sourceId"],
+                payload["url"],
+            )
+        else:
+            media = await open_media_stream(
+                payload["url"],
+                payload["sourceId"],
+                range_header=range_header,
+            )
     except MediaProxyError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
     except Exception as exc:

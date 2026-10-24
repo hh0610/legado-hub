@@ -28,7 +28,7 @@ from app.core.public_security import (
 # Beta / daily rule ships bump RELEASED_AT_MS only; formal tags bump both.
 _READER_RULE_VERSION = "0.0.32"
 # Last beta marker: book-type stamping moved to the toc rule (书山-proven pattern).
-_READER_RULE_RELEASED_AT_MS = 1792822369880
+_READER_RULE_RELEASED_AT_MS = 1792823703044
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
@@ -579,7 +579,7 @@ def _content_rule() -> str:
         'var media = chapterPayload ? String(chapterPayload.mediaUrl || "") : "";\n'
         'if ((fmt === "audio" || fmt === "video") && media) {\n'
         '  if (fmt === "video") {\n'
-        '    try { java.openVideoPlayer(media, String(chapterPayload.title || "视频播放")); } catch (eV) {}\n'
+        '    try { java.openVideoPlayer(media + "&concat=1", String(chapterPayload.title || "视频播放")); } catch (eV) {}\n'
         '    result = "▶️ 视频已在播放器中打开；如未弹出，请返回重新进入本章节。";\n'
         '  } else {\n'
         '    result = media;\n'

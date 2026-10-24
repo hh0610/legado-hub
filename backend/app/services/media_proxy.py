@@ -385,6 +385,125 @@ async def open_media_stream(
     )
 
 
+async def open_video_concat_stream(
+    source_id: str,
+    playlist_url: str,
+) -> MediaStreamResponse:
+    """Decrypt+concat an AES-128 HLS playlist into one progressive TS stream.
+
+    legadoC 的视频内核不带 HLS 模块（media3-exoplayer-hls 未打进其构建），
+    m3u8 直接喂会"播放地址不可用"。此处在服务端拉取播放列表、取 AES-128
+    密钥、逐分片解密后拼接为单条 video/mp2t 渐进流，任何渐进播放内核
+    （GSY/Exo/MediaPlayer/VLC）都能直接播。
+    """
+    from Crypto.Cipher import AES
+
+    plugin = _get_plugin(source_id)
+    if plugin is None or not getattr(plugin.metadata, "enabled", False):
+        raise MediaProxyError("书源不存在或已停用")
+
+    timeout = httpx.Timeout(connect=10.0, read=60.0, write=30.0, pool=30.0)
+
+    async def _fetch_bytes(client: httpx.AsyncClient, url: str) -> bytes:
+        headers = _request_headers(url, None)
+        response = await client.get(url, headers=headers)
+        if response.status_code == 403 and "Referer" in headers:
+            # 与 open_media_stream 相同：部分 CDN 拒绝任何 Referer。
+            headers = {k: v for k, v in headers.items() if k != "Referer"}
+            response = await client.get(url, headers=headers)
+        if response.status_code >= 400:
+            raise MediaProxyError(f"媒体上游返回 {response.status_code}", status_code=502)
+        return response.content
+
+    client = httpx.AsyncClient(timeout=timeout, follow_redirects=True, max_redirects=4)
+
+    async def _generator() -> AsyncIterator[bytes]:
+        try:
+            for sequence, segment_url in segments:
+                data = await _fetch_bytes(client, segment_url)
+                if key_bytes:
+                    iv = (
+                        bytes.fromhex(key_iv_hex)
+                        if key_iv_hex
+                        else sequence.to_bytes(16, "big")
+                    )
+                    data = AES.new(key_bytes, AES.MODE_CBC, iv).decrypt(data)
+                    padding = data[-1]
+                    if 1 <= padding <= 16:
+                        data = data[:-padding]
+                if data:
+                    yield data
+        except MediaProxyError:
+            raise
+        except (httpx.HTTPError, OSError, ValueError) as exc:
+            raise MediaProxyError(f"媒体获取失败: {exc}", status_code=502) from exc
+        finally:
+            await client.aclose()
+
+    playlist_bytes = await _fetch_bytes(client, playlist_url)
+    playlist_text = playlist_bytes.decode("utf-8", "replace")
+    if "#EXT-X-STREAM-INF" in playlist_text:
+        variant = next(
+            (
+                line.strip()
+                for line in playlist_text.splitlines()
+                if line.strip() and not line.startswith("#")
+            ),
+            "",
+        )
+        if not variant:
+            await client.aclose()
+            raise MediaProxyError("播放列表缺少分片地址", status_code=502)
+        playlist_url = urljoin(playlist_url, variant)
+        playlist_text = (await _fetch_bytes(client, playlist_url)).decode(
+            "utf-8", "replace"
+        )
+
+    key_uri = ""
+    key_iv_hex = ""
+    media_sequence = 0
+    segments: list[tuple[int, str]] = []
+    for line in playlist_text.splitlines():
+        line = line.strip()
+        if line.startswith("#EXT-X-MEDIA-SEQUENCE:"):
+            try:
+                media_sequence = int(line.split(":", 1)[1])
+            except ValueError:
+                pass
+        elif line.startswith("#EXT-X-KEY") and "AES-128" in line:
+            match = re.search(r'URI="([^"]+)"', line)
+            key_uri = urljoin(playlist_url, match.group(1)) if match else ""
+            iv_match = re.search(r"IV=0[xX]([0-9a-fA-F]+)", line)
+            key_iv_hex = iv_match.group(1) if iv_match else ""
+        elif line and not line.startswith("#"):
+            segments.append((media_sequence, urljoin(playlist_url, line)))
+            media_sequence += 1
+    if not segments:
+        await client.aclose()
+        raise MediaProxyError("播放列表中没有分片", status_code=502)
+
+    assert_stream_host_allowed(plugin, playlist_url)
+    _assert_public_upstream(playlist_url)
+    if key_uri:
+        assert_stream_host_allowed(plugin, key_uri)
+        _assert_public_upstream(key_uri)
+    for _, segment_url in segments:
+        assert_stream_host_allowed(plugin, segment_url)
+        _assert_public_upstream(segment_url)
+
+    key_bytes = await _fetch_bytes(client, key_uri) if key_uri else b""
+    if key_uri and len(key_bytes) != 16:
+        await client.aclose()
+        raise MediaProxyError("HLS 密钥长度异常", status_code=502)
+
+    return MediaStreamResponse(
+        status_code=200,
+        headers={"Content-Type": "video/mp2t", "Cache-Control": "no-store"},
+        content=None,
+        stream=_generator(),
+    )
+
+
 def _get_plugin(source_id: str):
     try:
         from app.source_plugins.scheduler import get_plugin_scheduler
