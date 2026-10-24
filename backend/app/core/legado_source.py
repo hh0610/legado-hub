@@ -27,8 +27,8 @@ from app.core.public_security import (
 #   now (ms). Keep _READER_RULE_VERSION unchanged so the name does not churn.
 # Beta / daily rule ships bump RELEASED_AT_MS only; formal tags bump both.
 _READER_RULE_VERSION = "0.0.32"
-# Last beta marker: book-type init js hardened (bitwise type OR + mediaType sync).
-_READER_RULE_RELEASED_AT_MS = 1792816964822
+# Last beta marker: book-type stamping moved to the toc rule (书山-proven pattern).
+_READER_RULE_RELEASED_AT_MS = 1792899000000
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
@@ -702,7 +702,22 @@ def _build_source(
             "canReName": "1",
         },
         "ruleToc": {
-            "chapterList": "$.chapters",
+            # 书型权威盖章放目录阶段（书山聚合验证可用的模式）：目录抓取时
+            # book 是已入库的活对象，此处改动随目录保存落库；详情 init 阶段
+            # 的对象生命周期依赖阅读端保存链路，不可靠。payload.contentType
+            # 由 /api/legado/book/{id}/toc 按插件 content.kind 下发。
+            "chapterList": (
+                "@js:\n"
+                'var payload = String(result || "");\n'
+                "var data = {};\n"
+                "try { data = JSON.parse(payload); } catch (e0) {}\n"
+                'var kind = String(data.contentType || "text");\n'
+                "var mask = 4 | 8 | 32 | 64 | 128;\n"
+                'var base = kind === "audio" ? 32 : (kind === "video" ? 4 : 8);\n'
+                "try { book.type = ((book.type & ~mask) | base) >>> 0; } catch (e1) {}\n"
+                'try { book.mediaType = kind === "audio" ? 1 : (kind === "video" ? 3 : 0); } catch (e2) {}\n'
+                "data.chapters || [];"
+            ),
             "chapterName": "$.title",
             "chapterUrl": (
                 "<js>\n"

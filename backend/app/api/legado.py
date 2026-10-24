@@ -163,6 +163,7 @@ def _public_toc_response(
     source_id: str,
     book_id: str,
     base_api: str,
+    content_kind: str = "text",
 ) -> dict:
     chapters = []
     for position, raw in enumerate(result.get("chapters", []) or [], start=1):
@@ -206,6 +207,7 @@ def _public_toc_response(
     return {
         "implemented": True,
         "bookId": book_id,
+        "contentType": content_kind or "text",
         "chapters": chapters,
     }
 
@@ -468,11 +470,16 @@ async def get_toc(request: Request, book_id: str) -> dict:
             shared = library_books_service.legado_toc(book_id, base_api=base_api)
             if shared is None:
                 raise HTTPException(status_code=404, detail="书籍尚未发布")
+            try:
+                payload = library_books_service.load_payload(book_id) or {}
+            except Exception:
+                payload = {}
             return _public_toc_response(
                 shared,
                 source_id=source_id,
                 book_id=book_id,
                 base_api=base_api,
+                content_kind=str(payload.get("contentType") or "text"),
             )
         catalog = Catalog(base_api=base_api)
         _require_third_party_plugin(
@@ -483,11 +490,16 @@ async def get_toc(request: Request, book_id: str) -> dict:
             target_url=book_url,
         )
         result = await catalog.toc(book_id)
+        plugin = catalog.scheduler._plugins.get(source_id)
+        content_kind = "text"
+        if plugin is not None:
+            content_kind = str((plugin.metadata.content or {}).get("kind") or "text")
         return _public_toc_response(
             result,
             source_id=source_id,
             book_id=book_id,
             base_api=base_api,
+            content_kind=content_kind,
         )
 
 
