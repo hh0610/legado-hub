@@ -27,8 +27,8 @@ from app.core.public_security import (
 #   now (ms). Keep _READER_RULE_VERSION unchanged so the name does not churn.
 # Beta / daily rule ships bump RELEASED_AT_MS only; formal tags bump both.
 _READER_RULE_VERSION = "0.0.32"
-# Last beta marker: audio sibling source (bookSourceType 1) + media filtering (ms).
-_READER_RULE_RELEASED_AT_MS = 1790935800000
+# Last beta marker: book-type init js hardened (bitwise type OR + mediaType sync).
+_READER_RULE_RELEASED_AT_MS = 1792816964822
 
 # Dual source identity: public vs LAN imports coexist in Reading.
 _PUBLIC_BOOK_SOURCE_URL = "LegadoHub"
@@ -599,8 +599,8 @@ def _book_info_init_rule() -> str:
         "var data = {};\n"
         "try { data = JSON.parse(raw).data || {}; } catch (e0) {}\n"
         'var kind = String(data.contentType || "text");\n'
-        'if (kind === "video") { try { book.type = 4; } catch (e1) {} }\n'
-        'else if (kind === "audio") { try { book.type = 32; } catch (e2) {} }\n'
+        'if (kind === "video") { try { book.type = (book.type | 4) >>> 0; book.mediaType = 3; } catch (e1) {} }\n'
+        'else if (kind === "audio") { try { book.type = (book.type | 32) >>> 0; book.mediaType = 1; } catch (e2) {} }\n'
         "JSON.stringify(data);"
     )
 
