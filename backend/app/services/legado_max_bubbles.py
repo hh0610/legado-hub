@@ -19,12 +19,36 @@ _EMOTICON_RE = re.compile(r"\[fn=\d+\]")
 
 
 def _bubble(count: int, url: str, *, emphasis: bool = False) -> str:
+    """Inline SVG bubble badge — data URI, works on any reader core.
+
+    The old bubble:// scheme was Max-only; legadoC tries to download unknown
+    img schemes and fails with "Expected URL scheme 'http' or 'https'".
+    """
     label = str(count) if count < 1000 else "999+"
-    # Keep the trailing image-option JSON out of Max's num and status values.
-    src = f"bubble://paragraph?num={quote(label)}&status={'emphasis' if emphasis else 'normal'}&v=1"
+    text = f"{label} 段评"
+    width, height = 168, 60
+    fill = "#8a4b2a" if emphasis else "#293237"
+    stroke = "#e29a70" if emphasis else "#637477"
+    root = ElementTree.Element("svg", {
+        "xmlns": "http://www.w3.org/2000/svg", "width": str(width), "height": str(height),
+        "viewBox": f"0 0 {width} {height}",
+    })
+    ElementTree.SubElement(root, "rect", {
+        "x": "2", "y": "2", "width": str(width - 4), "height": str(height - 4),
+        "rx": str(height // 2 - 2), "fill": fill, "stroke": stroke, "stroke-width": "2",
+    })
+    ElementTree.SubElement(root, "path", {
+        "d": f"M28 {height - 2} L38 {height + 12} L48 {height - 2} Z", "fill": fill,
+    })
+    label_node = ElementTree.SubElement(root, "text", {
+        "x": str(width // 2), "y": "40", "fill": "#f5f6f4", "font-size": "28",
+        "font-family": "sans-serif", "text-anchor": "middle",
+    })
+    label_node.text = text
+    encoded = base64.b64encode(ElementTree.tostring(root, encoding="utf-8")).decode("ascii")
     click = f"java.showBrowser({json.dumps(url, ensure_ascii=False)})"
     options = json.dumps({"style": "TEXT", "click": click}, ensure_ascii=False, separators=(",", ":"))
-    return f'<img src="{src},{options}">'
+    return f'<img src="data:image/svg+xml;base64,{encoded},{options}">'
 
 
 def _chapter_previews(reviews: dict) -> list[str]:
